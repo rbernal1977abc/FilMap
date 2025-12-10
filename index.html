@@ -83,7 +83,7 @@
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
         .map-controls { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
         
-        /* UPDATED: Colored map buttons by default */
+        /* UPDATED: Map buttons with different colors */
         .map-btn { 
             background: linear-gradient(to bottom, #2a5298, #1e3c72); 
             color: white; 
@@ -100,12 +100,40 @@
             transition: all 0.3s; 
             touch-action: manipulation; 
         }
-        .map-btn:active { transform: scale(0.95); }
-        .map-btn.active { background: linear-gradient(to bottom, #4CAF50, #45a049); color: white; animation: pulse-green 2s infinite; }
-        .map-btn.tracking { background: linear-gradient(to bottom, #FF9800, #F57C00); color: white; }
+        
+        /* "Get My Location" button - Blue */
+        #locateBtn { 
+            background: linear-gradient(to bottom, #2a5298, #1e3c72);
+        }
+        
+        /* "Track My Movement" button - Orange */
+        #trackBtn { 
+            background: linear-gradient(to bottom, #FF9800, #F57C00);
+        }
+        
+        /* Active state - lighter colors */
+        .map-btn.active { 
+            filter: brightness(1.3);
+            transform: scale(0.95);
+            box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+        }
+        
+        #locateBtn.active { 
+            background: linear-gradient(to bottom, #4a6bc2, #3a5ab0);
+        }
+        
+        #trackBtn.tracking { 
+            background: linear-gradient(to bottom, #ffb347, #ff9847);
+        }
+        
+        .map-btn:active { 
+            transform: scale(0.9);
+            filter: brightness(1.3);
+        }
+        
         @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); } 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); } }
         
-        /* UPDATED: Map legend moved to top right */
+        /* UPDATED: Map legend - hidden on mobile */
         .map-legend { 
             position: absolute; 
             top: 15px; 
@@ -130,8 +158,41 @@
         .legend-item { display: flex; align-items: center; margin-bottom: 8px; padding: 3px 0; }
         .legend-color { width: 16px; height: 16px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1); }
         .legend-label { font-size: 0.8rem; color: #333; }
-        @media (min-width: 768px) { .container { max-width: 1400px; margin: 0 auto; height: calc(100vh - 40px); } header { padding: 25px 40px; } header h1 { font-size: 2rem; } header p { font-size: 1.1rem; } .main-content { flex-direction: row; } #map { flex: 1; min-height: auto; } .sidebar { width: 400px; max-height: none; border-top: none; border-left: 3px solid #2a5298; } .notification { right: 20px; left: auto; width: auto; max-width: 400px; } .map-legend { width: 220px; top: 20px; right: 80px; } }
-        @media (max-width: 360px) { body { padding: 5px; } .container { height: calc(100vh - 10px); border-radius: 15px; } header { padding: 12px 15px; } header h1 { font-size: 1.2rem; } button { padding: 14px 15px; font-size: 0.95rem; min-height: 45px; } .map-btn { width: 45px; height: 45px; font-size: 1.2rem; } .map-legend { width: 160px; top: 10px; right: 60px; } }
+        
+        /* Hide legend on mobile */
+        @media (max-width: 767px) {
+            .map-legend {
+                display: none;
+            }
+        }
+        
+        @media (min-width: 768px) { 
+            .container { max-width: 1400px; margin: 0 auto; height: calc(100vh - 40px); } 
+            header { padding: 25px 40px; } 
+            header h1 { font-size: 2rem; } 
+            header p { font-size: 1.1rem; } 
+            .main-content { flex-direction: row; } 
+            #map { flex: 1; min-height: auto; } 
+            .sidebar { width: 400px; max-height: none; border-top: none; border-left: 3px solid #2a5298; } 
+            .notification { right: 20px; left: auto; width: auto; max-width: 400px; } 
+            .map-legend { 
+                width: 220px; 
+                top: 20px; 
+                right: 80px; 
+                display: block; /* Show on desktop */
+            } 
+        }
+        @media (max-width: 360px) { 
+            body { padding: 5px; } 
+            .container { height: calc(100vh - 10px); border-radius: 15px; } 
+            header { padding: 12px 15px; } 
+            header h1 { font-size: 1.2rem; } 
+            button { padding: 14px 15px; font-size: 0.95rem; min-height: 45px; } 
+            .map-btn { width: 45px; height: 45px; font-size: 1.2rem; } 
+            .map-legend { 
+                display: none; /* Hide on very small screens */
+            } 
+        }
         button, .map-btn, .legend-header { user-select: none; -webkit-user-select: none; }
         .sidebar::-webkit-scrollbar { width: 6px; }
         .sidebar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
@@ -173,10 +234,11 @@
             
             <!-- Map Controls -->
             <div class="map-controls">
-                <!-- UPDATED: These buttons now have colored backgrounds by default -->
+                <!-- Get My Location button - Blue -->
                 <button class="map-btn" id="locateBtn" title="Get My Location">
                     <i class="fas fa-location-arrow"></i>
                 </button>
+                <!-- Track My Movement button - Orange -->
                 <button class="map-btn" id="trackBtn" title="Track My Movement" style="display: none;">
                     <i class="fas fa-satellite"></i>
                 </button>
@@ -262,11 +324,6 @@
                                 <i class="fas fa-paper-plane"></i> Submit
                             </button>
                         </div>
-                        
-                        <!-- Permission Request Button -->
-                        <button type="button" id="requestPermissionBtn" class="warning">
-                            <i class="fas fa-lock-open"></i> Enable Location Access
-                        </button>
                     </form>
                 </div>
                 
@@ -282,7 +339,7 @@
         </div>
     </div>
     
-    <!-- Collapsible Map Legend - NOW AT TOP RIGHT -->
+    <!-- Collapsible Map Legend - Hidden on mobile, shown on desktop -->
     <div class="map-legend" id="mapLegend">
         <div class="legend-header" id="legendToggle">
             <span><i class="fas fa-map"></i> Map Legend</span>
@@ -512,7 +569,7 @@
                         
                         switch(error.code) {
                             case 1:
-                                errorMessage = 'Location permission denied. Click "Enable Location Access" button.';
+                                errorMessage = 'Location permission denied. Please allow location access in your browser settings.';
                                 setTimeout(() => {
                                     document.getElementById('permissionHelp').style.display = 'block';
                                 }, 500);
@@ -772,11 +829,6 @@
             } else {
                 startLiveTracking();
             }
-        });
-        
-        document.getElementById('requestPermissionBtn').addEventListener('click', function() {
-            document.getElementById('permissionHelp').style.display = 'block';
-            showNotification('Follow the instructions above to enable location access.', 'info');
         });
         
         form.addEventListener('submit', async function(e) {
