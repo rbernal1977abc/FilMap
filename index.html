@@ -1,1 +1,1016 @@
-apiKey:
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    
+    <!-- SECURITY HEADERS FOR HTTPS/VERCEL -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self' https:;
+        script-src 'self' https://unpkg.com https://www.gstatic.com https://nominatim.openstreetmap.org 'unsafe-inline' 'unsafe-eval';
+        style-src 'self' https://unpkg.com https://cdnjs.cloudflare.com 'unsafe-inline';
+        connect-src 'self' https://filmap-6d8ca-default-rtdb.asia-southeast1.firebasedatabase.app https://nominatim.openstreetmap.org wss://*.firebaseio.com;
+        img-src 'self' data: https: http: blob:;
+        font-src 'self' https://cdnjs.cloudflare.com;
+        frame-src 'none';
+        object-src 'none';
+        base-uri 'self';
+        form-action 'self';
+        upgrade-insecure-requests;
+    ">
+    
+    <meta http-equiv="Permissions-Policy" content="geolocation=(self), microphone=(), camera=()">
+    
+    <title>FilMap - NCR Live Traffic</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* [KEEP ALL YOUR CSS EXACTLY AS IS - NO CHANGES NEEDED] */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 10px; overflow-x: hidden; touch-action: manipulation; }
+        .container { width: 100%; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2); height: calc(100vh - 20px); display: flex; flex-direction: column; }
+        header { background: linear-gradient(to right, #1e3c72, #2a5298); color: white; padding: 15px 20px; text-align: center; flex-shrink: 0; }
+        header h1 { font-size: 1.4rem; margin-bottom: 5px; line-height: 1.3; }
+        header p { font-size: 0.9rem; opacity: 0.9; line-height: 1.4; }
+        .main-content { display: flex; flex-direction: column; flex: 1; overflow: hidden; position: relative; }
+        #map { flex: 1; min-height: 300px; width: 100%; z-index: 1; }
+        .sidebar { width: 100%; background: #f8f9fa; border-top: 3px solid #2a5298; padding: 15px; overflow-y: auto; max-height: 50vh; flex-shrink: 0; -webkit-overflow-scrolling: touch; }
+        .report-form { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .report-form h3 { color: #1e3c72; margin-bottom: 15px; font-size: 1.3rem; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 0.95rem; }
+        .required::after { content: " *"; color: #f44336; }
+        select, textarea, input { width: 100%; padding: 14px 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; transition: all 0.3s; -webkit-appearance: none; appearance: none; font-size: 16px; }
+        select:focus, textarea:focus, input:focus { border-color: #2a5298; outline: none; box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.2); }
+        textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+        .button-group { display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; }
+        button { background: linear-gradient(to right, #1e3c72, #2a5298); color: white; border: none; padding: 16px 20px; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; flex: 1; min-width: 120px; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; touch-action: manipulation; min-height: 50px; }
+        button:active { transform: translateY(2px); box-shadow: 0 3px 5px rgba(0,0,0,0.2); }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(42, 82, 152, 0.3); }
+        button:disabled { background: #cccccc; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7; }
+        button.secondary { background: linear-gradient(to right, #4CAF50, #45a049); flex: 0.8; }
+        button.danger { background: linear-gradient(to right, #f44336, #d32f2f); flex: 0.5; }
+        button.small { padding: 12px 15px; font-size: 0.9rem; min-height: 45px; }
+        button.warning { background: linear-gradient(to right, #FF9800, #F57C00); flex: 1; margin-top: 10px; }
+        .location-status { padding: 12px 15px; border-radius: 10px; margin-bottom: 15px; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; border-left: 4px solid #4CAF50; }
+        .location-status.success { background: #d4edda; color: #155724; border-left-color: #4CAF50; }
+        .location-status.error { background: #f8d7da; color: #721c24; border-left-color: #f44336; }
+        .location-status.loading { background: #e8f4f8; color: #0c5460; border-left-color: #17a2b8; animation: pulse 2s infinite; }
+        .permission-help { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 10px 0; border-radius: 8px; font-size: 0.9rem; display: none; }
+        .permission-help h4 { color: #856404; margin-bottom: 8px; font-size: 1rem; }
+        .permission-help ul { padding-left: 20px; margin: 8px 0; }
+        .permission-help li { margin-bottom: 5px; line-height: 1.4; }
+        .close-help { background: none; border: none; color: #856404; float: right; font-size: 1.2rem; cursor: pointer; padding: 0 5px; }
+        .reports-list { margin-top: 20px; }
+        .reports-list h3 { color: #1e3c72; margin-bottom: 15px; font-size: 1.3rem; }
+        .report-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 5px solid #4CAF50; cursor: pointer; transition: all 0.3s; -webkit-tap-highlight-color: transparent; }
+        .report-card:active { transform: scale(0.98); }
+        .report-card.severe { border-left-color: #f44336; }
+        .report-card.moderate { border-left-color: #FF9800; }
+        .report-card.accident { border-left-color: #9C27B0; }
+        .report-card.roadwork { border-left-color: #2196F3; }
+        .report-card.flood { border-left-color: #795548; }
+        .report-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .report-type { background: #e8eaf6; color: #1e3c72; padding: 4px 10px; border-radius: 15px; font-size: 0.85rem; font-weight: 600; }
+        .report-time { color: #666; font-size: 0.8rem; }
+        .report-location { color: #333; margin: 6px 0; font-weight: 600; font-size: 0.95rem; }
+        .report-desc { color: #555; line-height: 1.5; font-size: 0.9rem; }
+        .report-user { font-size: 0.8rem; color: #888; margin-top: 8px; }
+        .notification { position: fixed; top: 10px; right: 10px; left: 10px; background: #4CAF50; color: white; padding: 15px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: none; z-index: 10000; animation: slideIn 0.3s ease; text-align: center; }
+        .notification.error { background: #f44336; }
+        .notification.info { background: #2196F3; }
+        @keyframes slideIn { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .map-controls { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        
+        /* UPDATED: Colored map buttons by default */
+        .map-btn { 
+            background: linear-gradient(to bottom, #2a5298, #1e3c72); 
+            color: white; 
+            border: none; 
+            border-radius: 50%; 
+            width: 50px; 
+            height: 50px; 
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2); 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 1.3rem; 
+            transition: all 0.3s; 
+            touch-action: manipulation; 
+        }
+        .map-btn:active { transform: scale(0.95); }
+        .map-btn.active { background: linear-gradient(to bottom, #4CAF50, #45a049); color: white; animation: pulse-green 2s infinite; }
+        .map-btn.tracking { background: linear-gradient(to bottom, #FF9800, #F57C00); color: white; }
+        @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); } 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); } }
+        
+        /* UPDATED: Map legend moved to top right */
+        .map-legend { 
+            position: absolute; 
+            top: 15px; 
+            right: 70px; /* Positioned to the left of the map controls */
+            background: rgba(255, 255, 255, 0.95); 
+            border-radius: 10px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
+            z-index: 1000; 
+            font-size: 0.85rem; 
+            width: 180px; 
+            overflow: hidden; 
+            transition: all 0.3s ease; 
+            border: 1px solid #ddd; 
+            backdrop-filter: blur(5px); 
+            -webkit-backdrop-filter: blur(5px); 
+        }
+        .legend-header { padding: 12px 15px; background: #1e3c72; color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 0.9rem; }
+        .legend-toggle { font-size: 1rem; transition: transform 0.3s ease; }
+        .legend-toggle.expanded { transform: rotate(180deg); }
+        .legend-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .legend-content.expanded { max-height: 300px; padding: 15px; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 8px; padding: 3px 0; }
+        .legend-color { width: 16px; height: 16px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1); }
+        .legend-label { font-size: 0.8rem; color: #333; }
+        @media (min-width: 768px) { .container { max-width: 1400px; margin: 0 auto; height: calc(100vh - 40px); } header { padding: 25px 40px; } header h1 { font-size: 2rem; } header p { font-size: 1.1rem; } .main-content { flex-direction: row; } #map { flex: 1; min-height: auto; } .sidebar { width: 400px; max-height: none; border-top: none; border-left: 3px solid #2a5298; } .notification { right: 20px; left: auto; width: auto; max-width: 400px; } .map-legend { width: 220px; top: 20px; right: 80px; } }
+        @media (max-width: 360px) { body { padding: 5px; } .container { height: calc(100vh - 10px); border-radius: 15px; } header { padding: 12px 15px; } header h1 { font-size: 1.2rem; } button { padding: 14px 15px; font-size: 0.95rem; min-height: 45px; } .map-btn { width: 45px; height: 45px; font-size: 1.2rem; } .map-legend { width: 160px; top: 10px; right: 60px; } }
+        button, .map-btn, .legend-header { user-select: none; -webkit-user-select: none; }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+        .sidebar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        .sidebar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; display: none; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #1e3c72; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .battery-warning { position: fixed; bottom: 10px; left: 10px; right: 10px; background: #ff9800; color: white; padding: 12px 15px; border-radius: 10px; display: none; z-index: 1000; text-align: center; font-size: 0.9rem; box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
+        .close-warning { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; padding: 0 5px; }
+    </style>
+</head>
+<body>
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>Loading FilMap...</p>
+    </div>
+    
+    <!-- Battery warning -->
+    <div class="battery-warning" id="batteryWarning">
+        <span>🔋 Live tracking uses more battery. Turn off when not needed.</span>
+        <button class="close-warning" onclick="this.parentElement.style.display='none'">×</button>
+    </div>
+    
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+    
+    <!-- Main container -->
+    <div class="container">
+        <header>
+            <h1>🗺️ FilMap - NCR Live Traffic</h1>
+            <p>Real-time crowd-sourced traffic reports for Metro Manila</p>
+        </header>
+        
+        <div class="main-content">
+            <!-- Map -->
+            <div id="map"></div>
+            
+            <!-- Map Controls -->
+            <div class="map-controls">
+                <!-- UPDATED: These buttons now have colored backgrounds by default -->
+                <button class="map-btn" id="locateBtn" title="Get My Location">
+                    <i class="fas fa-location-arrow"></i>
+                </button>
+                <button class="map-btn" id="trackBtn" title="Track My Movement" style="display: none;">
+                    <i class="fas fa-satellite"></i>
+                </button>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="report-form">
+                    <h3><i class="fas fa-edit"></i> Report Traffic</h3>
+                    
+                    <!-- Permission Help -->
+                    <div class="permission-help" id="permissionHelp">
+                        <button class="close-help" onclick="this.parentElement.style.display='none'">×</button>
+                        <h4><i class="fas fa-info-circle"></i> Location Permission Required</h4>
+                        <div id="permissionInstructions">
+                            <p>To use location features, please allow location access:</p>
+                            <ul>
+                                <li>Click the lock icon (🔒) in your address bar</li>
+                                <li>Select "Site settings" or "Permissions"</li>
+                                <li>Find "Location" and change to "Allow"</li>
+                                <li>Refresh this page after allowing permission</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Location Status -->
+                    <div class="location-status" id="locationStatus" style="display: none;">
+                        <span id="locationIcon"><i class="fas fa-map-marker-alt"></i></span>
+                        <span id="locationText">Detecting your location...</span>
+                    </div>
+                    
+                    <form id="reportForm">
+                        <div class="form-group">
+                            <label for="trafficType" class="required"><i class="fas fa-traffic-light"></i> Traffic Condition</label>
+                            <select id="trafficType" required>
+                                <option value="">-- Select Type --</option>
+                                <option value="light"><i class="fas fa-check-circle"></i> Light Traffic</option>
+                                <option value="moderate"><i class="fas fa-exclamation-triangle"></i> Moderate Traffic</option>
+                                <option value="heavy"><i class="fas fa-car"></i> Heavy Traffic</option>
+                                <option value="accident"><i class="fas fa-car-crash"></i> Accident / Crash</option>
+                                <option value="roadwork"><i class="fas fa-tools"></i> Road Construction</option>
+                                <option value="flood"><i class="fas fa-water"></i> Flooding / Hazard</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="locationInput" class="required"><i class="fas fa-map-pin"></i> Location Description</label>
+                            <input type="text" id="locationInput" 
+                                   placeholder="e.g., 'EDSA Northbound near Guadalupe'" 
+                                   required>
+                            <small style="color: #666; font-size: 0.8rem; display: block; margin-top: 5px;">
+                                Auto-filled when you use your current location
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="description"><i class="fas fa-info-circle"></i> Additional Details (Optional)</label>
+                            <textarea id="description" 
+                                      placeholder="Any extra information about the traffic situation..."></textarea>
+                        </div>
+                        
+                        <!-- Required Name Field -->
+                        <div class="form-group">
+                            <label for="username" class="required"><i class="fas fa-user"></i> Your Name</label>
+                            <input type="text" id="username" 
+                                   placeholder="Enter your name" 
+                                   required
+                                   minlength="2">
+                            <small style="color: #666; font-size: 0.8rem; display: block; margin-top: 5px;">
+                                Your name will be shown with your report
+                            </small>
+                        </div>
+                        
+                        <!-- Button Group -->
+                        <div class="button-group">
+                            <button type="button" id="useLocationBtn" class="secondary small">
+                                <i class="fas fa-location-arrow"></i> My Location
+                            </button>
+                            <button type="button" id="clearLocationBtn" class="danger small">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                            <button type="submit" id="submitBtn">
+                                <i class="fas fa-paper-plane"></i> Submit
+                            </button>
+                        </div>
+                        
+                        <!-- Permission Request Button -->
+                        <button type="button" id="requestPermissionBtn" class="warning">
+                            <i class="fas fa-lock-open"></i> Enable Location Access
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="reports-list">
+                    <h3><i class="fas fa-sync-alt"></i> Live Community Reports</h3>
+                    <div id="reportsContainer">
+                        <p style="text-align: center; color: #777; padding: 20px;" id="noReports">
+                            No reports yet. Be the first to report!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Collapsible Map Legend - NOW AT TOP RIGHT -->
+    <div class="map-legend" id="mapLegend">
+        <div class="legend-header" id="legendToggle">
+            <span><i class="fas fa-map"></i> Map Legend</span>
+            <span class="legend-toggle"><i class="fas fa-chevron-down"></i></span>
+        </div>
+        <div class="legend-content" id="legendContent">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4CAF50;"></div>
+                <span class="legend-label">Light Traffic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF9800;"></div>
+                <span class="legend-label">Moderate Traffic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f44336;"></div>
+                <span class="legend-label">Heavy Traffic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #9C27B0;"></div>
+                <span class="legend-label">Accident / Crash</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2196F3;"></div>
+                <span class="legend-label">Road Construction</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #795548;"></div>
+                <span class="legend-label">Flooding / Hazard</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #1e3c72;"></div>
+                <span class="legend-label">Your Location</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF9800;"></div>
+                <span class="legend-label">Live Tracking</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // ============================================
+        // FIREBASE CONFIGURATION - SECURE VERSION
+        // ============================================
+        // IMPORTANT: Get NEW API key from Firebase Console
+        // Go to: https://console.firebase.google.com/
+        // Project: filmap-6d8ca → Settings → General → Web API Key → Regenerate
+        
+        const firebaseConfig = {
+            apiKey: "YOUR_NEW_API_KEY_HERE", // ← REPLACE THIS WITH NEW KEY
+            authDomain: "filmap-6d8ca.firebaseapp.com",
+            databaseURL: "https://filmap-6d8ca-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "filmap-6d8ca",
+            storageBucket: "filmap-6d8ca.firebasestorage.app",
+            messagingSenderId: "58282015204",
+            appId: "1:58282015204:web:7c939ae3e28b6a2dd16ff1"
+        };
+
+        // ============================================
+        // MOBILE OPTIMIZATION
+        // ============================================
+        // Detect mobile device
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        const isChrome = /Chrome/.test(navigator.userAgent) && !/Edge/.test(navigator.userAgent);
+        
+        console.log(`Mobile: ${isMobile}, iOS: ${isIOS}, Safari: ${isSafari}, Chrome: ${isChrome}`);
+        console.log(`Running on HTTPS: ${window.location.protocol === 'https:'}`);
+        
+        // Show loading overlay
+        document.getElementById('loadingOverlay').style.display = 'flex';
+        
+        // Show battery warning on mobile
+        if (isMobile) {
+            setTimeout(() => {
+                document.getElementById('batteryWarning').style.display = 'block';
+            }, 3000);
+        }
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        console.log("🚀 Starting FilMap (Secure Version)...");
+        
+        // Initialize Firebase
+        try {
+            const app = firebase.initializeApp(firebaseConfig);
+            const database = firebase.database();
+            const reportsRef = database.ref('trafficReports');
+            console.log("✅ Firebase initialized");
+        } catch (error) {
+            console.error("❌ Firebase initialization failed:", error);
+            showNotification("Firebase connection error. Please check API key.", "error");
+        }
+        
+        // Initialize Map
+        const map = L.map('map', {
+            tap: isMobile,
+            dragging: true,
+            touchZoom: true,
+            scrollWheelZoom: !isMobile,
+            doubleClickZoom: !isMobile,
+            boxZoom: !isMobile,
+            keyboard: !isMobile,
+            zoomControl: false
+        }).setView([14.5995, 120.9842], isMobile ? 11 : 12);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 19,
+            minZoom: 10
+        }).addTo(map);
+        
+        // Add zoom control
+        L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        
+        // Add scale control
+        L.control.scale({
+            imperial: false,
+            metric: true
+        }).addTo(map);
+        
+        console.log("✅ Map initialized");
+        
+        // Hide loading overlay
+        setTimeout(() => {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }, 1000);
+        
+        // ============================================
+        // GLOBAL VARIABLES
+        // ============================================
+        let selectedLocation = null;
+        let userLocation = null;
+        let userMarker = null;
+        let watchId = null;
+        let isTracking = false;
+        let isLocating = false;
+        const markers = {};
+        
+        const typeConfig = {
+            light: { color: '#4CAF50', label: 'Light Traffic', emoji: '✅', icon: 'check-circle' },
+            moderate: { color: '#FF9800', label: 'Moderate Traffic', emoji: '⚠️', icon: 'exclamation-triangle' },
+            heavy: { color: '#f44336', label: 'Heavy Traffic', emoji: '🚗', icon: 'car' },
+            accident: { color: '#9C27B0', label: 'Accident/Crash', emoji: '🚨', icon: 'car-crash' },
+            roadwork: { color: '#2196F3', label: 'Road Construction', emoji: '🛠️', icon: 'tools' },
+            flood: { color: '#795548', label: 'Flooding/Hazard', emoji: '🌊', icon: 'water' }
+        };
+        
+        // ============================================
+        // LOCATION FUNCTIONS (FIXED FOR HTTPS)
+        // ============================================
+        async function getUserLocation() {
+            if (isLocating) return;
+            
+            const locationStatus = document.getElementById('locationStatus');
+            const locationIcon = document.getElementById('locationIcon');
+            const locationText = document.getElementById('locationText');
+            const locateBtn = document.getElementById('locateBtn');
+            
+            // Show loading state
+            locationStatus.style.display = 'flex';
+            locationStatus.className = 'location-status loading';
+            locationIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            locationText.textContent = 'Requesting location access...';
+            locateBtn.classList.add('active');
+            isLocating = true;
+            
+            // Hide permission help
+            document.getElementById('permissionHelp').style.display = 'none';
+            
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    updateLocationStatus('Geolocation not supported by browser', 'error');
+                    isLocating = false;
+                    reject(new Error('Geolocation not supported'));
+                    return;
+                }
+                
+                const options = {
+                    enableHighAccuracy: true,
+                    timeout: 20000,
+                    maximumAge: 0
+                };
+                
+                navigator.geolocation.getCurrentPosition(
+                    // Success
+                    (position) => {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            speed: position.coords.speed || 0,
+                            heading: position.coords.heading,
+                            timestamp: position.timestamp
+                        };
+                        
+                        console.log('Location obtained:', userLocation);
+                        
+                        updateLocationStatus(
+                            `Location found! Accuracy: ${Math.round(userLocation.accuracy)}m`,
+                            'success'
+                        );
+                        
+                        updateUserLocationMarker();
+                        map.setView([userLocation.lat, userLocation.lng], isMobile ? 16 : 15);
+                        autoFillLocationField();
+                        document.getElementById('trackBtn').style.display = 'block';
+                        
+                        locateBtn.classList.remove('active');
+                        isLocating = false;
+                        resolve(userLocation);
+                    },
+                    // Error
+                    (error) => {
+                        let errorMessage = 'Unable to get location';
+                        
+                        switch(error.code) {
+                            case 1:
+                                errorMessage = 'Location permission denied. Click "Enable Location Access" button.';
+                                setTimeout(() => {
+                                    document.getElementById('permissionHelp').style.display = 'block';
+                                }, 500);
+                                break;
+                            case 2:
+                                errorMessage = 'Location unavailable. Check GPS/Wi-Fi.';
+                                break;
+                            case 3:
+                                errorMessage = 'Location request timed out. Try again.';
+                                break;
+                        }
+                        
+                        updateLocationStatus(errorMessage, 'error');
+                        locateBtn.classList.remove('active');
+                        isLocating = false;
+                        reject(new Error(errorMessage));
+                    },
+                    options
+                );
+            });
+        }
+        
+        function startLiveTracking() {
+            if (!navigator.geolocation) {
+                showNotification('Geolocation not supported', 'error');
+                return;
+            }
+            
+            if (isTracking) {
+                stopLiveTracking();
+                return;
+            }
+            
+            const trackBtn = document.getElementById('trackBtn');
+            trackBtn.innerHTML = '<i class="fas fa-satellite-dish"></i>';
+            trackBtn.classList.add('tracking');
+            trackBtn.title = 'Stop Tracking';
+            
+            updateLocationStatus('Live tracking active...', 'loading');
+            
+            const trackOptions = {
+                enableHighAccuracy: true,
+                maximumAge: 2000,
+                timeout: 10000
+            };
+            
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        speed: position.coords.speed || 0,
+                        heading: position.coords.heading,
+                        timestamp: position.timestamp
+                    };
+                    
+                    let statusMsg = `Tracking... Accuracy: ${Math.round(userLocation.accuracy)}m`;
+                    if (userLocation.speed > 0) {
+                        const speedKph = (userLocation.speed * 3.6).toFixed(1);
+                        statusMsg += ` | Speed: ${speedKph} km/h`;
+                    }
+                    
+                    updateLocationStatus(statusMsg, 'success');
+                    updateUserLocationMarker();
+                    map.setView([userLocation.lat, userLocation.lng], 17);
+                    
+                    if (Math.random() < 0.1) {
+                        autoFillLocationField();
+                    }
+                },
+                (error) => {
+                    console.error('Tracking error:', error);
+                    stopLiveTracking();
+                    updateLocationStatus('Tracking stopped', 'error');
+                },
+                trackOptions
+            );
+            
+            isTracking = true;
+            showNotification('🎯 Live tracking started!');
+        }
+        
+        function stopLiveTracking() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            
+            isTracking = false;
+            
+            const trackBtn = document.getElementById('trackBtn');
+            trackBtn.innerHTML = '<i class="fas fa-satellite"></i>';
+            trackBtn.classList.remove('tracking');
+            trackBtn.title = 'Track My Movement';
+            
+            updateLocationStatus('Tracking stopped', 'info');
+            showNotification('Tracking stopped.');
+        }
+        
+        function updateUserLocationMarker() {
+            if (!userLocation) return;
+            
+            if (userMarker) {
+                map.removeLayer(userMarker);
+            }
+            
+            const markerHtml = `
+                <div style="
+                    width: ${isTracking ? '35px' : '30px'};
+                    height: ${isTracking ? '35px' : '30px'};
+                    background: ${isTracking ? '#FF9800' : '#1e3c72'};
+                    border-radius: 50%;
+                    border: 3px solid white;
+                    box-shadow: 0 0 15px ${isTracking ? 'rgba(255, 152, 0, 0.7)' : 'rgba(30, 60, 114, 0.5)'};
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: ${isTracking ? '16px' : '14px'};
+                    ${isTracking ? 'animation: pulse 2s infinite;' : ''}
+                ">
+                    ${isTracking ? '🎯' : '📍'}
+                </div>
+            `;
+            
+            const userIcon = L.divIcon({
+                className: 'user-location-marker',
+                iconSize: isTracking ? [40, 40] : [35, 35],
+                iconAnchor: isTracking ? [20, 20] : [17, 17],
+                html: markerHtml
+            });
+            
+            userMarker = L.marker([userLocation.lat, userLocation.lng], {
+                icon: userIcon,
+                zIndexOffset: 1000
+            }).addTo(map);
+            
+            let popupContent = `
+                <div style="font-weight: bold; color: ${isTracking ? '#FF9800' : '#1e3c72'};">
+                    ${isTracking ? '🎯 Live Tracking' : '📍 Your Location'}
+                </div>
+                <div style="margin: 8px 0; font-size: 14px;">
+                    <strong>Lat:</strong> ${userLocation.lat.toFixed(6)}<br>
+                    <strong>Lng:</strong> ${userLocation.lng.toFixed(6)}
+                </div>
+            `;
+            
+            if (userLocation.speed > 0) {
+                const speedKph = (userLocation.speed * 3.6).toFixed(1);
+                popupContent += `<div style="margin: 5px 0;"><strong>Speed:</strong> ${speedKph} km/h</div>`;
+            }
+            
+            userMarker.bindPopup(popupContent);
+        }
+        
+        function updateLocationStatus(message, type = 'info') {
+            const locationStatus = document.getElementById('locationStatus');
+            const locationIcon = document.getElementById('locationIcon');
+            const locationText = document.getElementById('locationText');
+            
+            locationStatus.style.display = 'flex';
+            locationStatus.className = `location-status ${type}`;
+            
+            switch(type) {
+                case 'success': locationIcon.innerHTML = '<i class="fas fa-check-circle"></i>'; break;
+                case 'error': locationIcon.innerHTML = '<i class="fas fa-exclamation-circle"></i>'; break;
+                case 'loading': locationIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; break;
+                default: locationIcon.innerHTML = '<i class="fas fa-info-circle"></i>';
+            }
+            
+            locationText.textContent = message;
+        }
+        
+        async function autoFillLocationField() {
+            if (!userLocation) return;
+            
+            const locationInput = document.getElementById('locationInput');
+            locationInput.value = `${userLocation.lat.toFixed(5)}, ${userLocation.lng.toFixed(5)}`;
+            
+            setTimeout(async () => {
+                try {
+                    const response = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLocation.lat}&lon=${userLocation.lng}&zoom=16`
+                    );
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.display_name) {
+                            const address = data.display_name.split(',').slice(0, 3).join(',').replace(/, Philippines$/, '');
+                            locationInput.value = `${address}`;
+                        }
+                    }
+                } catch (error) {}
+            }, 500);
+            
+            selectedLocation = { lat: userLocation.lat, lng: userLocation.lng };
+            validateForm();
+        }
+        
+        function clearLocation() {
+            userLocation = null;
+            selectedLocation = null;
+            
+            if (userMarker) {
+                map.removeLayer(userMarker);
+                userMarker = null;
+            }
+            
+            document.getElementById('locationInput').value = '';
+            document.getElementById('locationStatus').style.display = 'none';
+            document.getElementById('locateBtn').classList.remove('active');
+            
+            if (isTracking) {
+                stopLiveTracking();
+            }
+            
+            validateForm();
+            showNotification('Location cleared');
+        }
+        
+        // ============================================
+        // FORM VALIDATION
+        // ============================================
+        const form = document.getElementById('reportForm');
+        const usernameInput = document.getElementById('username');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        function validateForm() {
+            const username = usernameInput.value.trim();
+            const trafficType = document.getElementById('trafficType').value;
+            const location = document.getElementById('locationInput').value.trim();
+            submitBtn.disabled = !(username.length >= 2 && trafficType && location && selectedLocation);
+        }
+        
+        usernameInput.addEventListener('input', validateForm);
+        document.getElementById('trafficType').addEventListener('change', validateForm);
+        document.getElementById('locationInput').addEventListener('input', validateForm);
+        
+        // ============================================
+        // EVENT HANDLERS
+        // ============================================
+        document.getElementById('useLocationBtn').addEventListener('click', () => {
+            if (isLocating) return;
+            getUserLocation().catch(console.error);
+        });
+        
+        document.getElementById('clearLocationBtn').addEventListener('click', clearLocation);
+        document.getElementById('locateBtn').addEventListener('click', () => {
+            if (isLocating) return;
+            getUserLocation().catch(console.error);
+        });
+        
+        document.getElementById('trackBtn').addEventListener('click', () => {
+            if (!userLocation) {
+                getUserLocation().then(startLiveTracking).catch(console.error);
+            } else {
+                startLiveTracking();
+            }
+        });
+        
+        document.getElementById('requestPermissionBtn').addEventListener('click', function() {
+            document.getElementById('permissionHelp').style.display = 'block';
+            showNotification('Follow the instructions above to enable location access.', 'info');
+        });
+        
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = usernameInput.value.trim();
+            if (username.length < 2) {
+                showNotification('Please enter your name (min 2 chars)', 'error');
+                usernameInput.focus();
+                return;
+            }
+            
+            if (!selectedLocation) {
+                showNotification('Please select a location first!', 'error');
+                return;
+            }
+            
+            const type = document.getElementById('trafficType').value;
+            const location = document.getElementById('locationInput').value.trim();
+            const description = document.getElementById('description').value.trim();
+            
+            if (!type || !location) {
+                showNotification('Please fill all required fields', 'error');
+                return;
+            }
+            
+            const report = {
+                type: type,
+                location: location,
+                description: description || 'No additional details',
+                username: username,
+                lat: selectedLocation.lat,
+                lng: selectedLocation.lng,
+                timestamp: Date.now(),
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                date: new Date().toLocaleDateString(),
+                source: userLocation ? 'gps' : 'manual',
+                device: isMobile ? 'mobile' : 'desktop'
+            };
+            
+            try {
+                const newReportRef = reportsRef.push();
+                await newReportRef.set(report);
+                
+                document.getElementById('trafficType').value = '';
+                document.getElementById('locationInput').value = '';
+                document.getElementById('description').value = '';
+                selectedLocation = null;
+                
+                if (window.tempMarker) {
+                    map.removeLayer(window.tempMarker);
+                    window.tempMarker = null;
+                }
+                
+                submitBtn.disabled = true;
+                showNotification('✅ Report submitted!');
+                
+            } catch (error) {
+                console.error('Submission error:', error);
+                showNotification('❌ Error submitting. Check API key.', 'error');
+            }
+        });
+        
+        // ============================================
+        // MAP LEGEND
+        // ============================================
+        const legendToggle = document.getElementById('legendToggle');
+        const legendContent = document.getElementById('legendContent');
+        const legendArrow = document.querySelector('.legend-toggle');
+        
+        legendToggle.addEventListener('click', () => {
+            legendContent.classList.toggle('expanded');
+            legendArrow.classList.toggle('expanded');
+            localStorage.setItem('filmap_legend_expanded', legendContent.classList.contains('expanded'));
+        });
+        
+        if (localStorage.getItem('filmap_legend_expanded') === 'true') {
+            legendContent.classList.add('expanded');
+            legendArrow.classList.add('expanded');
+        }
+        
+        // ============================================
+        // MAP CLICK
+        // ============================================
+        map.on('click', function(e) {
+            selectedLocation = e.latlng;
+            
+            if (window.tempMarker) {
+                map.removeLayer(window.tempMarker);
+            }
+            
+            window.tempMarker = L.circleMarker([e.latlng.lat, e.latlng.lng], {
+                color: '#1e3c72',
+                fillColor: '#1e3c72',
+                fillOpacity: 0.3,
+                radius: 10
+            }).addTo(map);
+            
+            document.getElementById('locationInput').value = 
+                `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+            
+            updateLocationStatus('Location selected on map', 'success');
+            validateForm();
+        });
+        
+        // ============================================
+        // FIREBASE DATA SYNC
+        // ============================================
+        function addReportToMap(report) {
+            const config = typeConfig[report.type] || typeConfig.moderate;
+            
+            const marker = L.circleMarker([report.lat, report.lng], {
+                color: config.color,
+                fillColor: config.color,
+                fillOpacity: 0.7,
+                radius: isMobile ? 10 : 12,
+                weight: 2
+            }).addTo(map);
+            
+            marker.bindPopup(`
+                <div style="font-weight: bold; color: ${config.color}; font-size: ${isMobile ? '14px' : '16px'}">
+                    ${config.emoji} ${config.label}
+                </div>
+                <div style="margin: 8px 0; font-size: ${isMobile ? '13px' : '14px'}">
+                    <strong>📍:</strong> ${report.location}
+                </div>
+                <div style="margin: 8px 0; font-size: ${isMobile ? '13px' : '14px'}">
+                    <strong>📝:</strong> ${report.description}
+                </div>
+                <div style="margin: 8px 0; font-size: ${isMobile ? '12px' : '13px'}">
+                    <strong>👤:</strong> ${report.username}
+                </div>
+                <div style="color: #666; font-size: ${isMobile ? '11px' : '12px'}">
+                    ${report.time} • ${report.date}
+                </div>
+            `);
+            
+            markers[report.id] = marker;
+        }
+        
+        function addReportToSidebar(report) {
+            const container = document.getElementById('reportsContainer');
+            const noReportsMsg = document.getElementById('noReports');
+            
+            if (noReportsMsg) {
+                noReportsMsg.style.display = 'none';
+            }
+            
+            const config = typeConfig[report.type] || typeConfig.moderate;
+            
+            const card = document.createElement('div');
+            card.className = `report-card ${report.type}`;
+            card.id = `report-${report.id}`;
+            card.innerHTML = `
+                <div class="report-header">
+                    <span class="report-type" style="background: ${config.color}20; color: ${config.color};">
+                        <i class="fas fa-${config.icon}"></i> ${config.label}
+                    </span>
+                    <span class="report-time">${report.time}</span>
+                </div>
+                <div class="report-location">📍 ${report.location}</div>
+                <div class="report-desc">${report.description}</div>
+                <div class="report-user"><i class="fas fa-user"></i> ${report.username} • ${report.device || 'device'}</div>
+            `;
+            
+            card.addEventListener('click', () => {
+                map.setView([report.lat, report.lng], 16);
+                if (markers[report.id]) {
+                    markers[report.id].openPopup();
+                }
+            });
+            
+            container.insertBefore(card, container.firstChild);
+            
+            const cards = container.querySelectorAll('.report-card');
+            if (cards.length > 20) {
+                container.removeChild(cards[cards.length - 1]);
+            }
+        }
+        
+        reportsRef.on('child_added', function(snapshot) {
+            const report = snapshot.val();
+            report.id = snapshot.key;
+            addReportToMap(report);
+            addReportToSidebar(report);
+        });
+        
+        reportsRef.on('child_removed', function(snapshot) {
+            const reportId = snapshot.key;
+            if (markers[reportId]) {
+                map.removeLayer(markers[reportId]);
+                delete markers[reportId];
+            }
+            const card = document.getElementById(`report-${reportId}`);
+            if (card) card.remove();
+        });
+        
+        // ============================================
+        // HELPER FUNCTIONS
+        // ============================================
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        // ============================================
+        // INITIAL LOAD
+        // ============================================
+        reportsRef.limitToLast(20).once('value').then((snapshot) => {
+            if (snapshot.exists()) {
+                document.getElementById('noReports').style.display = 'none';
+                snapshot.forEach((childSnapshot) => {
+                    const report = childSnapshot.val();
+                    report.id = childSnapshot.key;
+                    addReportToSidebar(report);
+                });
+            }
+        });
+        
+        validateForm();
+        
+        setTimeout(() => {
+            if (window.location.protocol === 'https:') {
+                showNotification('🔒 Secure HTTPS connection detected', 'info');
+            }
+        }, 2000);
+        
+        console.log("✅ FilMap loaded successfully!");
+    </script>
+</body>
+</html>
