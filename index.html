@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     
-    <title>FilMap</title>
+    <title>FilMap - NCR Traffic & Directions</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -45,6 +45,7 @@
             padding: 15px 20px;
             text-align: center;
             flex-shrink: 0;
+            position: relative;
         }
         
         .menu-page header h1 {
@@ -52,15 +53,30 @@
             margin-bottom: 5px;
         }
         
-        .menu-page header p {
-            font-size: 0.9rem;
-            opacity: 0.9;
+        .start-here-container {
+            position: absolute;
+            top: 15px;
+            left: 20px;
         }
         
-        .menu-content {
-            flex: 1;
-            padding: 15px;
-            overflow-y: auto;
+        .start-here-btn {
+            background: linear-gradient(to bottom, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+        
+        .start-here-btn:hover {
+            background: linear-gradient(to bottom, #45a049, #3d8b40);
+            transform: translateY(-2px);
         }
         
         /* Map Page (Right) */
@@ -86,32 +102,35 @@
             width: 100%;
         }
         
-        /* Swipe Indicator */
-        .swipe-indicator {
-            position: absolute;
-            top: 50%;
-            left: 10px;
-            transform: translateY(-50%);
-            background: rgba(30, 60, 114, 0.8);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+        /* Mobile Navigation Icons */
+        .mobile-nav-icons {
+            position: fixed;
+            top: 20px;
+            right: 20px;
             z-index: 1000;
             display: flex;
+            gap: 10px;
+        }
+        
+        .nav-icon-btn {
+            background: rgba(30, 60, 114, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            font-size: 1.2rem;
             cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
             transition: all 0.3s;
         }
         
-        .swipe-indicator:hover {
+        .nav-icon-btn:hover {
             background: rgba(30, 60, 114, 1);
-        }
-        
-        .swipe-indicator.right {
-            left: auto;
-            right: 10px;
+            transform: scale(1.1);
         }
         
         /* Map Controls */
@@ -125,20 +144,103 @@
             gap: 10px; 
         }
         
-        .map-btn { 
-            background: linear-gradient(to bottom, #2a5298, #1e3c72); 
-            color: white; 
-            border: none; 
-            border-radius: 50px; 
-            padding: 12px 20px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.2); 
-            cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 0.9rem;
+        /* Navigation Panel - Collapsible */
+        .navigation-panel {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            width: 300px;
+            max-width: 90vw;
+            z-index: 1000;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .navigation-header {
+            background: linear-gradient(to right, #1e3c72, #2a5298);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .navigation-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
             gap: 8px;
-            min-width: 120px;
+        }
+        
+        .navigation-toggle {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.3s;
+        }
+        
+        .navigation-toggle.collapsed {
+            transform: rotate(180deg);
+        }
+        
+        .navigation-content {
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .navigation-step {
+            padding: 10px;
+            border-left: 3px solid #2196F3;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .navigation-step:hover {
+            background: #e9ecef;
+            transform: translateX(3px);
+        }
+        
+        .navigation-step.active {
+            border-left-color: #4CAF50;
+            background: #e8f5e9;
+        }
+        
+        .navigation-step.voicing {
+            animation: pulseVoice 1.5s infinite;
+        }
+        
+        @keyframes pulseVoice {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+            70% { box-shadow: 0 0 0 5px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+        
+        .step-text {
+            font-weight: 500;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .step-distance {
+            font-size: 0.8rem;
+            color: #666;
+            margin-left: 24px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         
         /* Menu Styling */
@@ -298,15 +400,6 @@
             border-left-color: #4CAF50;
             background: #f0f9ff;
         }
-        .instruction-step.voicing {
-            animation: pulseVoice 1.5s infinite;
-            background: linear-gradient(to right, #f0f9ff, #e3f2fd);
-        }
-        @keyframes pulseVoice {
-            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
-        }
         .instruction-text { 
             color: #333; 
             font-weight: 500;
@@ -416,18 +509,35 @@
                 width: 50vw;
             }
             
-            .swipe-indicator {
+            .mobile-nav-icons {
                 display: none;
+            }
+            
+            .navigation-panel {
+                top: 90px;
+                right: 30px;
             }
         }
         
         @media (max-width: 767px) {
             .route-summary { flex-direction: column; gap: 10px; }
             .route-summary-item { flex: 1; }
-            .map-btn {
-                min-width: 100px;
-                padding: 10px 15px;
-                font-size: 0.8rem;
+            
+            .navigation-panel {
+                top: 70px;
+                right: 10px;
+                width: calc(100vw - 20px);
+                max-width: none;
+            }
+            
+            .start-here-container {
+                position: static;
+                margin-top: 10px;
+                text-align: center;
+            }
+            
+            .start-here-btn {
+                margin: 0 auto;
             }
         }
     </style>
@@ -442,14 +552,29 @@
     <!-- Notification -->
     <div class="notification" id="notification"></div>
     
-    <!-- Swipe indicator for menu -->
-    <div class="swipe-indicator" id="menuIndicator">
-        <i class="fas fa-bars"></i> Menu
+    <!-- Mobile Navigation Icons (Right side above report traffic) -->
+    <div class="mobile-nav-icons" id="mobileNavIcons" style="display: none;">
+        <button class="nav-icon-btn" id="menuIconBtn" title="Open Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        <button class="nav-icon-btn" id="mapIconBtn" title="Open Map" style="display: none;">
+            <i class="fas fa-map"></i>
+        </button>
     </div>
     
-    <!-- Swipe indicator for map -->
-    <div class="swipe-indicator right" id="mapIndicator" style="display: none;">
-        <i class="fas fa-map"></i> Map
+    <!-- Navigation Panel (Collapsible) -->
+    <div class="navigation-panel" id="navigationPanel">
+        <div class="navigation-header" id="navigationHeader">
+            <h3><i class="fas fa-directions"></i> Navigation</h3>
+            <button class="navigation-toggle" id="navigationToggle">
+                <i class="fas fa-chevron-up"></i>
+            </button>
+        </div>
+        <div class="navigation-content" id="navigationContent">
+            <div id="navigationSteps">
+                <!-- Navigation steps will be added here -->
+            </div>
+        </div>
     </div>
     
     <!-- Main split container -->
@@ -458,6 +583,11 @@
         <div class="menu-page">
             <header>
                 <h1>🗺️ FilMap</h1>
+                <div class="start-here-container">
+                    <button class="start-here-btn" id="startHereBtn">
+                        <i class="fas fa-play-circle"></i> Start Here
+                    </button>
+                </div>
             </header>
             
             <div class="menu-content">
@@ -476,7 +606,7 @@
                     <div class="directions-input-group">
                         <div class="directions-input">
                             <div class="icon"><i class="fas fa-map-marker-alt"></i></div>
-                            <input type="text" id="fromInput" placeholder="From (Current Location)" readonly>
+                            <input type="text" id="fromInput" placeholder="From (My Destination)" readonly>
                         </div>
                         <div class="swap-btn" id="swapBtn">
                             <i class="fas fa-exchange-alt"></i>
@@ -594,12 +724,6 @@
             </header>
             
             <div id="map"></div>
-            
-            <div class="map-controls">
-                <button class="map-btn" id="locateBtn" title="Get My Location">
-                    <i class="fas fa-play-circle"></i> Start Here
-                </button>
-            </div>
         </div>
     </div>
 
@@ -655,17 +779,19 @@
         let userLocation = null;
         let userMarker = null;
         let watchId = null;
-        let isTracking = false; // Will be set to true when location is obtained
+        let isTracking = false;
         const markers = {};
         let routingControl = null;
         let debounceTimer;
         let isReportCollapsed = true;
         let activeRoute = null;
         let routeFound = false;
-        let voiceEnabled = false; // Auto-enabled when Go is clicked
+        let voiceEnabled = false;
         let speechSynthesis = window.speechSynthesis;
         let currentInstructionIndex = 0;
         let isNavigationMode = false;
+        let navigationSteps = [];
+        let isNavigationPanelCollapsed = false;
         
         const typeConfig = {
             light: { color: '#4CAF50', label: 'Light Traffic', emoji: '✅' },
@@ -723,7 +849,125 @@
         ];
 
         // ============================================
-        // SWIPE NAVIGATION FUNCTIONS
+        // NAVIGATION PANEL FUNCTIONS
+        // ============================================
+        function toggleNavigationPanel() {
+            const toggleBtn = document.getElementById('navigationToggle');
+            const content = document.getElementById('navigationContent');
+            
+            if (isNavigationPanelCollapsed) {
+                // Expand
+                content.style.display = 'block';
+                toggleBtn.classList.remove('collapsed');
+                isNavigationPanelCollapsed = false;
+            } else {
+                // Collapse
+                content.style.display = 'none';
+                toggleBtn.classList.add('collapsed');
+                isNavigationPanelCollapsed = true;
+            }
+        }
+
+        function showNavigationPanel() {
+            document.getElementById('navigationPanel').style.display = 'block';
+            isNavigationPanelCollapsed = false;
+            document.getElementById('navigationContent').style.display = 'block';
+            document.getElementById('navigationToggle').classList.remove('collapsed');
+        }
+
+        function hideNavigationPanel() {
+            document.getElementById('navigationPanel').style.display = 'none';
+        }
+
+        function updateNavigationSteps(steps) {
+            const stepsContainer = document.getElementById('navigationSteps');
+            stepsContainer.innerHTML = '';
+            
+            navigationSteps = steps;
+            
+            steps.forEach((step, index) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'navigation-step';
+                stepDiv.dataset.index = index;
+                if (index === 0) stepDiv.classList.add('active');
+                
+                // Get appropriate icon
+                let icon = 'fas fa-arrow-right';
+                if (step.text.includes('left')) icon = 'fas fa-arrow-left';
+                else if (step.text.includes('right')) icon = 'fas fa-arrow-right';
+                else if (step.text.includes('Continue') || step.text.includes('Keep')) icon = 'fas fa-arrow-up';
+                else if (step.text.includes('Arrive')) icon = 'fas fa-flag-checkered';
+                else if (step.text.includes('Head')) icon = 'fas fa-road';
+                else if (step.text.includes('Destination')) icon = 'fas fa-map-marker-alt';
+                
+                stepDiv.innerHTML = `
+                    <div class="step-text">
+                        <i class="${icon}"></i>
+                        ${step.text}
+                    </div>
+                    <div class="step-distance">
+                        <i class="fas fa-road"></i>
+                        ${(step.distance / 1000).toFixed(2)} km
+                    </div>
+                `;
+                
+                stepDiv.addEventListener('click', () => {
+                    speakNavigationInstruction(step, step.distance);
+                    currentInstructionIndex = index;
+                    
+                    // Highlight clicked step
+                    document.querySelectorAll('.navigation-step').forEach(stepEl => {
+                        stepEl.classList.remove('active');
+                    });
+                    stepDiv.classList.add('active');
+                    
+                    // Highlight on menu page too
+                    const menuSteps = document.querySelectorAll('.instruction-step');
+                    if (menuSteps[index]) {
+                        menuSteps.forEach(s => s.classList.remove('active'));
+                        menuSteps[index].classList.add('active');
+                    }
+                });
+                
+                stepsContainer.appendChild(stepDiv);
+            });
+        }
+
+        // Initialize navigation panel toggle
+        document.getElementById('navigationHeader').addEventListener('click', toggleNavigationPanel);
+
+        // ============================================
+        // MOBILE NAVIGATION ICONS
+        // ============================================
+        function showMobileNavIcons() {
+            document.getElementById('mobileNavIcons').style.display = 'flex';
+        }
+        
+        function hideMobileNavIcons() {
+            document.getElementById('mobileNavIcons').style.display = 'none';
+        }
+        
+        function updateMobileNavIcons() {
+            if (window.innerWidth < 768) {
+                showMobileNavIcons();
+                if (currentPage === 'map') {
+                    document.getElementById('menuIconBtn').style.display = 'flex';
+                    document.getElementById('mapIconBtn').style.display = 'none';
+                } else {
+                    document.getElementById('menuIconBtn').style.display = 'none';
+                    document.getElementById('mapIconBtn').style.display = 'flex';
+                }
+            } else {
+                hideMobileNavIcons();
+            }
+        }
+        
+        // Initialize mobile nav icons
+        document.getElementById('menuIconBtn').addEventListener('click', showMenuPage);
+        document.getElementById('mapIconBtn').addEventListener('click', showMapPage);
+
+        // ============================================
+        // PAGE NAVIGATION FUNCTIONS
         // ============================================
         let touchStartX = 0;
         let touchEndX = 0;
@@ -733,21 +977,15 @@
             const container = document.getElementById('splitContainer');
             container.style.transform = 'translateX(-100vw)';
             currentPage = 'map';
-            document.getElementById('menuIndicator').style.display = 'block';
-            document.getElementById('mapIndicator').style.display = 'none';
+            updateMobileNavIcons();
         }
         
         function showMenuPage() {
             const container = document.getElementById('splitContainer');
             container.style.transform = 'translateX(0)';
             currentPage = 'menu';
-            document.getElementById('menuIndicator').style.display = 'none';
-            document.getElementById('mapIndicator').style.display = 'block';
+            updateMobileNavIcons();
         }
-        
-        // Initialize swipe indicators
-        document.getElementById('menuIndicator').addEventListener('click', showMenuPage);
-        document.getElementById('mapIndicator').addEventListener('click', showMapPage);
         
         // Add touch events for mobile swipe
         document.addEventListener('touchstart', e => {
@@ -779,11 +1017,11 @@
             if (window.innerWidth >= 768) {
                 const container = document.getElementById('splitContainer');
                 container.style.transform = 'translateX(0)';
-                document.getElementById('menuIndicator').style.display = 'none';
-                document.getElementById('mapIndicator').style.display = 'none';
+                hideMobileNavIcons();
             } else {
                 // On mobile, start on map page
                 showMapPage();
+                updateMobileNavIcons();
             }
         }
         
@@ -825,7 +1063,7 @@
             }
             
             // Highlight the step being spoken
-            const steps = document.querySelectorAll('.instruction-step');
+            const steps = document.querySelectorAll('.navigation-step');
             steps.forEach((step, index) => {
                 step.classList.remove('voicing');
             });
@@ -957,13 +1195,16 @@
                 activeRoute = null;
             }
             
+            // Hide navigation panel
+            hideNavigationPanel();
+            
             document.getElementById('routeInfo').style.display = 'none';
             document.getElementById('toInput').value = '';
             document.getElementById('routeInstructions').innerHTML = '';
             document.getElementById('suggestions').style.display = 'none';
             routeFound = false;
             isNavigationMode = false;
-            voiceEnabled = false; // Disable voice when clearing route
+            voiceEnabled = false;
             
             // Switch back to search button
             showSearchButton();
@@ -1144,9 +1385,12 @@
                 ).length;
                 document.getElementById('routeTurns').textContent = turnCount;
                 
-                // Add instructions
+                // Add instructions to menu page
                 const instructionsDiv = document.getElementById('routeInstructions');
                 instructionsDiv.innerHTML = '';
+                
+                // Prepare navigation steps for map panel
+                const navSteps = [];
                 
                 instructions.forEach((instruction, index) => {
                     const stepDiv = document.createElement('div');
@@ -1184,10 +1428,27 @@
                             step.classList.remove('active');
                         });
                         stepDiv.classList.add('active');
+                        
+                        // Highlight in navigation panel too
+                        const navSteps = document.querySelectorAll('.navigation-step');
+                        if (navSteps[index]) {
+                            navSteps.forEach(s => s.classList.remove('active'));
+                            navSteps[index].classList.add('active');
+                        }
                     });
                     
                     instructionsDiv.appendChild(stepDiv);
+                    
+                    // Add to navigation steps array
+                    navSteps.push({
+                        text: instruction.text,
+                        distance: instruction.distance,
+                        icon: icon
+                    });
                 });
+                
+                // Update navigation panel
+                updateNavigationSteps(navSteps);
                 
                 // Highlight the route on map
                 activeRoute = L.polyline(routes[0].coordinates, {
@@ -1221,30 +1482,23 @@
             
             isNavigationMode = true;
             
+            // Show navigation panel
+            showNavigationPanel();
+            
             // Enable voice navigation automatically
             if (enableVoiceNavigation()) {
                 // Speak first instruction if available
-                const instructions = document.querySelectorAll('.instruction-step');
-                if (instructions.length > 0 && routingControl) {
-                    const route = routingControl.getPlan().waypoints;
-                    if (route && route.length >= 2) {
-                        speak("Starting navigation. Please follow the highlighted route.");
-                        
-                        // Speak first instruction after a delay
-                        setTimeout(() => {
-                            const firstStep = instructions[0];
-                            if (firstStep) {
-                                currentInstructionIndex = 0;
-                                const distanceText = firstStep.querySelector('.instruction-distance').textContent;
-                                const distance = parseFloat(distanceText.split(' ')[0]) * 1000; // Convert to meters
-                                
-                                // Get the instruction text
-                                const instructionText = firstStep.querySelector('.instruction-text').innerText;
-                                const instruction = { text: instructionText, distance: distance };
-                                speakNavigationInstruction(instruction, distance);
-                            }
-                        }, 1500);
-                    }
+                if (navigationSteps.length > 0) {
+                    speak("Starting navigation. Please follow the highlighted route.");
+                    
+                    // Speak first instruction after a delay
+                    setTimeout(() => {
+                        const firstStep = navigationSteps[0];
+                        if (firstStep) {
+                            currentInstructionIndex = 0;
+                            speakNavigationInstruction(firstStep, firstStep.distance);
+                        }
+                    }, 1500);
                 }
             }
             
@@ -1619,7 +1873,7 @@
 
         document.getElementById('clearLocationBtn').addEventListener('click', clearLocation);
 
-        document.getElementById('locateBtn').addEventListener('click', () => {
+        document.getElementById('startHereBtn').addEventListener('click', () => {
             getUserLocation().catch(console.error);
         });
 
