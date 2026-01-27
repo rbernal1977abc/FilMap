@@ -425,6 +425,40 @@
             100% { transform: rotate(360deg); }
         }
         
+        /* Voice Control */
+        .voice-control {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .voice-btn {
+            background: white;
+            color: #1e3c72;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+        
+        .voice-btn.active {
+            background: #4CAF50;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .voice-btn:hover {
+            transform: scale(1.1);
+        }
+        
         /* Responsive */
         @media (min-width: 768px) {
             .split-container {
@@ -531,6 +565,13 @@
         </button>
         <button class="nav-icon-btn" id="mapIconBtn" title="Open Map" style="display: none;">
             <i class="fas fa-map"></i>
+        </button>
+    </div>
+    
+    <!-- Voice Control Button -->
+    <div class="voice-control" id="voiceControl">
+        <button class="voice-btn" id="toggleVoiceBtn" title="Toggle Voice Guidance">
+            <i class="fas fa-volume-up"></i>
         </button>
     </div>
     
@@ -750,11 +791,23 @@
         let isReportCollapsed = true;
         let activeRoute = null;
         let routeFound = false;
-        let voiceEnabled = false;
+        let voiceEnabled = true; // Auto-enable voice by default
         let speechSynthesis = window.speechSynthesis;
         let currentInstructionIndex = 0;
         let isNavigationMode = false;
         let navigationSteps = [];
+        
+        // NEW VARIABLES FOR VOICE NAVIGATION
+        let routeCoordinates = [];
+        let currentRoute = null;
+        let nextCheckpointIndex = 0;
+        let checkpointThreshold = 100; // Speak 100 meters before turn
+        let voiceCheckInterval = null;
+        let isVoiceActive = false;
+        let lastSpokenInstruction = null;
+        let distanceToNextTurn = 0;
+        let userOnRoute = true;
+        let navigationInterval = null;
         
         const typeConfig = {
             light: { color: '#4CAF50', label: 'Light Traffic', emoji: '✅' },
@@ -812,12 +865,35 @@
         ];
 
         // ============================================
+        // VOICE CONTROL BUTTON
+        // ============================================
+        document.getElementById('toggleVoiceBtn').addEventListener('click', function() {
+            voiceEnabled = !voiceEnabled;
+            const btn = document.getElementById('toggleVoiceBtn');
+            if (voiceEnabled) {
+                btn.classList.add('active');
+                showNotification('Voice guidance enabled');
+                speak("Voice guidance enabled");
+            } else {
+                btn.classList.remove('active');
+                showNotification('Voice guidance disabled');
+                if (speechSynthesis) {
+                    speechSynthesis.cancel();
+                }
+            }
+        });
+
+        // Initialize voice button state
+        document.getElementById('toggleVoiceBtn').classList.add('active');
+
+        // ============================================
         // GO TO LOCATION BUTTON FUNCTIONALITY
         // ============================================
         document.getElementById('goToLocationBtn').addEventListener('click', function() {
             if (userLocation) {
                 map.setView([userLocation.lat, userLocation.lng], 15);
                 showNotification('Centered on your location');
+                if (voiceEnabled) speak("Centered on your location");
             } else {
                 getUserLocation().then(() => {
                     map.setView([userLocation.lat, userLocation.lng], 15);
@@ -883,7 +959,7 @@
         }
 
         // ============================================
-        // VOICE FUNCTIONS
+        // VOICE FUNCTIONS - UPDATED FOR AUTO NAVIGATION
         // ============================================
         function speak(text) {
             if (!voiceEnabled || !speechSynthesis) return;
@@ -894,71 +970,201 @@
             // Create utterance
             const utterance = new SpeechSynthesisUtterance(text);
             
-            // Configure for female voice
+            // Configure for clear voice
             utterance.rate = 1.0;
-            utterance.pitch = 1.2;
+            utterance.pitch = 1.1;
             utterance.volume = 1;
             
-            // Try to get a female voice
+            // Try to get a good voice
             const voices = speechSynthesis.getVoices();
-            const femaleVoice = voices.find(voice => 
+            const goodVoice = voices.find(voice => 
                 voice.lang.includes('en') && 
                 (voice.name.includes('Female') || 
-                 voice.name.includes('female') ||
+                 voice.name.includes('Google') ||
                  voice.name.includes('Samantha') ||
-                 voice.name.includes('Karen') ||
-                 voice.name.includes('Google UK English Female') ||
-                 voice.name.includes('Microsoft Zira'))
+                 voice.name.includes('Microsoft'))
             );
             
-            if (femaleVoice) {
-                utterance.voice = femaleVoice;
-            } else {
-                // Fallback to first English voice
-                const englishVoice = voices.find(voice => voice.lang.includes('en'));
-                if (englishVoice) utterance.voice = englishVoice;
+            if (goodVoice) {
+                utterance.voice = goodVoice;
             }
             
             // Speak the text
             speechSynthesis.speak(utterance);
         }
 
-        function enableVoiceNavigation() {
-            if (!speechSynthesis) {
-                showNotification('Voice navigation not supported in your browser', 'error');
-                return false;
-            }
-            
-            voiceEnabled = true;
-            showNotification('Voice navigation enabled automatically');
-            
-            // Speak welcome message
-            if (speechSynthesis) {
-                speak("Voice navigation enabled. Ready to guide you.");
-            }
-            
-            return true;
-        }
-
         function speakNavigationInstruction(instruction, distance) {
-            if (!voiceEnabled) return;
+            if (!voiceEnabled || !instruction) return;
             
             // Clean up the instruction text for speech
             let cleanText = instruction.text
-                .replace(/<\/?[^>]+(>|$)/g, "") // Remove HTML tags
-                .replace(/&nbsp;/g, " ") // Replace &nbsp;
-                .replace(/&amp;/g, "and") // Replace &amp;
+                .replace(/<\/?[^>]+(>|$)/g, "")
+                .replace(/&nbsp;/g, " ")
+                .replace(/&amp;/g, "and")
                 .trim();
             
-            // Add distance information
-            const distanceKm = (distance / 1000).toFixed(2);
-            let speechText = cleanText;
-            
-            if (distanceKm > 0.1) {
-                speechText += ` in ${distanceKm} kilometers`;
+            // Add distance information for turns
+            if (cleanText.includes('Turn') || cleanText.includes('left') || cleanText.includes('right')) {
+                if (distance > 0) {
+                    const distanceMeters = Math.round(distance);
+                    if (distanceMeters > 1000) {
+                        cleanText += ` in ${(distanceMeters / 1000).toFixed(1)} kilometers`;
+                    } else {
+                        cleanText += ` in ${distanceMeters} meters`;
+                    }
+                }
             }
             
-            speak(speechText);
+            speak(cleanText);
+            lastSpokenInstruction = cleanText;
+        }
+
+        // ============================================
+        // AUTO VOICE NAVIGATION FUNCTIONS
+        // ============================================
+        function checkPositionForVoiceGuidance() {
+            if (!isNavigationMode || !userLocation || !currentRoute || navigationSteps.length === 0) {
+                return;
+            }
+            
+            const userPos = L.latLng(userLocation.lat, userLocation.lng);
+            
+            // Calculate distance to next turn
+            if (currentInstructionIndex < navigationSteps.length - 1) {
+                const nextStepIndex = currentInstructionIndex + 1;
+                const nextStep = navigationSteps[nextStepIndex];
+                
+                // Calculate remaining distance to next instruction
+                let remainingDistance = 0;
+                for (let i = currentInstructionIndex + 1; i < navigationSteps.length; i++) {
+                    remainingDistance += navigationSteps[i].distance;
+                }
+                
+                distanceToNextTurn = remainingDistance;
+                
+                // Speak instruction when approaching turn
+                if (remainingDistance < checkpointThreshold && 
+                    nextStep.text !== lastSpokenInstruction) {
+                    
+                    speakNavigationInstruction(nextStep, remainingDistance);
+                    currentInstructionIndex = nextStepIndex;
+                    
+                    // Update UI
+                    document.querySelectorAll('.instruction-step').forEach(step => {
+                        step.classList.remove('active');
+                        if (parseInt(step.dataset.index) === currentInstructionIndex) {
+                            step.classList.add('active');
+                        }
+                    });
+                    
+                    // If this is the arrival instruction
+                    if (nextStep.text.includes('Arrive') || nextStep.text.includes('Destination')) {
+                        setTimeout(() => {
+                            speak("You have arrived at your destination");
+                            isNavigationMode = false;
+                            isVoiceActive = false;
+                            showNotification('Arrived at destination!');
+                        }, 3000);
+                    }
+                }
+                
+                // Give distance updates for major turns
+                if (nextStep.text.includes('Turn') || nextStep.text.includes('Exit')) {
+                    if (remainingDistance < 500 && remainingDistance > 100) {
+                        if (!lastSpokenInstruction || !lastSpokenInstruction.includes('500')) {
+                            speak(`In ${Math.round(remainingDistance)} meters, ${nextStep.text.toLowerCase()}`);
+                            lastSpokenInstruction = nextStep.text + '500';
+                        }
+                    }
+                }
+            }
+            
+            // Check if off route
+            if (routeCoordinates.length > 0) {
+                let minDistance = Infinity;
+                for (const coord of routeCoordinates) {
+                    const dist = userPos.distanceTo([coord.lat, coord.lng]);
+                    if (dist < minDistance) minDistance = dist;
+                }
+                
+                if (minDistance > 50 && userOnRoute) {
+                    userOnRoute = false;
+                    if (voiceEnabled) speak("You appear to be off the route. Recalculating...");
+                    setTimeout(() => {
+                        if (userLocation && isNavigationMode) {
+                            recalculateRoute();
+                        }
+                    }, 2000);
+                } else if (minDistance <= 50 && !userOnRoute) {
+                    userOnRoute = true;
+                }
+            }
+        }
+
+        function startVoiceNavigation() {
+            if (!routeFound || !voiceEnabled) return;
+            
+            isVoiceActive = true;
+            currentInstructionIndex = 0;
+            lastSpokenInstruction = null;
+            
+            // Start checking position every 3 seconds
+            if (voiceCheckInterval) clearInterval(voiceCheckInterval);
+            voiceCheckInterval = setInterval(checkPositionForVoiceGuidance, 3000);
+            
+            // Speak first instruction
+            setTimeout(() => {
+                if (navigationSteps.length > 0) {
+                    speak("Starting navigation. Please follow the route.");
+                    setTimeout(() => {
+                        speakNavigationInstruction(navigationSteps[0], navigationSteps[0].distance);
+                    }, 1000);
+                }
+            }, 500);
+        }
+
+        function stopVoiceNavigation() {
+            isVoiceActive = false;
+            if (voiceCheckInterval) {
+                clearInterval(voiceCheckInterval);
+                voiceCheckInterval = null;
+            }
+            if (speechSynthesis) {
+                speechSynthesis.cancel();
+            }
+        }
+
+        function recalculateRoute() {
+            if (!userLocation) return;
+            
+            showNotification('Recalculating route...');
+            if (voiceEnabled) speak("Recalculating route");
+            
+            // Clear current route
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            
+            if (activeRoute) {
+                map.removeLayer(activeRoute);
+                activeRoute = null;
+            }
+            
+            // Use current location as new starting point
+            const fromLatLng = L.latLng(userLocation.lat, userLocation.lng);
+            const toInput = document.getElementById('toInput').value;
+            
+            if (!toInput) {
+                showNotification('Destination not found', 'error');
+                return;
+            }
+            
+            // Re-search route from current location
+            setTimeout(() => {
+                document.getElementById('fromInput').value = "My Current Location";
+                searchRoute();
+            }, 1000);
         }
 
         // ============================================
@@ -1041,18 +1247,24 @@
             document.getElementById('suggestions').style.display = 'none';
             routeFound = false;
             isNavigationMode = false;
-            voiceEnabled = false;
+            
+            // Stop voice navigation
+            stopVoiceNavigation();
+            voiceEnabled = true;
             
             // Switch back to search button
             showSearchButton();
             
-            // Stop voice
-            if (speechSynthesis) {
-                speechSynthesis.cancel();
-            }
+            // Clear route data
+            routeCoordinates = [];
+            currentRoute = null;
+            navigationSteps = [];
+            currentInstructionIndex = 0;
             
             // Switch to map page
             showMapPage();
+            
+            if (voiceEnabled) speak("Route cleared");
         }
 
         function swapLocations() {
@@ -1076,6 +1288,7 @@
             const toInput = document.getElementById('toInput').value.trim();
             if (!toInput) {
                 showNotification('Please enter a destination', 'error');
+                if (voiceEnabled) speak("Please enter a destination");
                 return;
             }
 
@@ -1100,6 +1313,7 @@
                                 fromLatLng = L.latLng(parseFloat(data[0].lat), parseFloat(data[0].lon));
                             } else {
                                 showNotification('Starting point not found', 'error');
+                                if (voiceEnabled) speak("Starting point not found");
                                 return;
                             }
                         }
@@ -1110,6 +1324,7 @@
                     }
                 } else {
                     showNotification('Please enable location services or enter a starting point', 'error');
+                    if (voiceEnabled) speak("Please enable location services");
                     return;
                 }
             }
@@ -1156,6 +1371,7 @@
                     document.getElementById('toInput').value = shortName;
                 } else {
                     showNotification('Destination not found. Please try a different location or be more specific.', 'error');
+                    if (voiceEnabled) speak("Destination not found");
                     return;
                 }
             } catch (error) {
@@ -1210,6 +1426,13 @@
             routingControl.on('routesfound', function(e) {
                 const routes = e.routes;
                 const summary = routes[0].summary;
+                
+                // STORE ROUTE DATA FOR VOICE NAVIGATION
+                currentRoute = routes[0];
+                routeCoordinates = routes[0].coordinates;
+                nextCheckpointIndex = 0;
+                distanceToNextTurn = 0;
+                userOnRoute = true;
                 
                 // Update route info
                 document.getElementById('routeDistance').textContent = 
@@ -1279,7 +1502,8 @@
                     navigationSteps.push({
                         text: instruction.text,
                         distance: instruction.distance,
-                        icon: icon
+                        icon: icon,
+                        index: index
                     });
                 });
                 
@@ -1301,6 +1525,7 @@
                 showMapPage();
                 
                 showNotification('Route found! Click "Go" to start navigation.');
+                if (voiceEnabled) speak("Route found. Ready to navigate.");
             });
 
             // Fit map to route bounds
@@ -1310,27 +1535,14 @@
         function startNavigation() {
             if (!routeFound) {
                 showNotification('Please search for a route first', 'error');
+                if (voiceEnabled) speak("Please search for a route first");
                 return;
             }
             
             isNavigationMode = true;
             
-            // Enable voice navigation automatically
-            if (enableVoiceNavigation()) {
-                // Speak first instruction if available
-                if (navigationSteps.length > 0) {
-                    speak("Starting navigation. Please follow the highlighted route.");
-                    
-                    // Speak first instruction after a delay
-                    setTimeout(() => {
-                        const firstStep = navigationSteps[0];
-                        if (firstStep) {
-                            currentInstructionIndex = 0;
-                            speakNavigationInstruction(firstStep, firstStep.distance);
-                        }
-                    }, 1500);
-                }
-            }
+            // Start voice navigation automatically
+            startVoiceNavigation();
             
             // Zoom to appropriate level for navigation
             map.setZoom(15);
@@ -1343,7 +1555,7 @@
             // Switch to map page for navigation
             showMapPage();
             
-            showNotification('Navigation started! Voice guidance enabled.');
+            showNotification('Navigation started! Voice guidance will guide you.');
         }
 
         async function searchSuggestions(query) {
@@ -1530,6 +1742,8 @@
                         // Switch to map page to see location
                         showMapPage();
                         
+                        if (voiceEnabled) speak("Location found. Ready for navigation.");
+                        
                         resolve(userLocation);
                     },
                     (error) => {
@@ -1621,7 +1835,7 @@
         }
 
         // ============================================
-        // AUTO TRACKING FUNCTIONS
+        // AUTO TRACKING FUNCTIONS - UPDATED FOR VOICE
         // ============================================
         function startAutoTracking() {
             if (!navigator.geolocation || !userLocation) return;
@@ -1641,6 +1855,11 @@
                     // If we're in navigation mode, keep map centered on user
                     if (isNavigationMode) {
                         map.setView([userLocation.lat, userLocation.lng], 15);
+                        
+                        // Auto-check for voice guidance
+                        if (isVoiceActive) {
+                            checkPositionForVoiceGuidance();
+                        }
                     }
                 },
                 (error) => {
@@ -1897,7 +2116,8 @@
         setTimeout(() => {
             document.getElementById('loadingOverlay').style.display = 'none';
             validateForm();
-            showNotification('FilMap loaded! Click "Start Here" to begin.');
+            showNotification('FilMap loaded! Voice navigation ready.');
+            if (voiceEnabled) speak("FilMap navigation ready");
         }, 1000);
 
         // Load existing reports
@@ -1912,7 +2132,7 @@
             }
         });
 
-        console.log("✅ FilMap with Directions loaded!");
+        console.log("✅ FilMap with Auto Voice Navigation loaded!");
     </script>
 </body>
 </html>
