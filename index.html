@@ -33,7 +33,7 @@
             flex-direction: column;
         }
         
-        /* Menu Page (Left) */
+        /* Menu Page (Left) - UPDATED HEADER */
         .menu-page {
             background: #f8f9fa;
             overflow-y: auto;
@@ -47,21 +47,24 @@
             flex-shrink: 0;
             position: relative;
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
+            flex-wrap: nowrap;
         }
         
         .menu-page header h1 {
             font-size: 1.4rem;
-            margin-bottom: 5px;
-            order: 2;
+            margin: 0;
+            order: 1;
+            text-align: left;
+            flex: 1;
         }
         
         .start-here-container {
             position: static;
-            align-self: flex-start;
-            margin-bottom: 10px;
-            order: 1;
+            margin: 0;
+            order: 2;
+            align-self: center;
         }
         
         .start-here-btn {
@@ -77,6 +80,7 @@
             cursor: pointer;
             box-shadow: 0 3px 10px rgba(0,0,0,0.2);
             transition: all 0.3s;
+            white-space: nowrap;
         }
         
         .start-here-btn:hover {
@@ -502,22 +506,23 @@
             
             .menu-page header {
                 padding: 12px 15px;
-                flex-direction: column;
-                align-items: flex-start;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
             }
             
             .menu-page header h1 {
-                order: 2;
+                order: 1;
                 align-self: center;
-                width: 100%;
-                text-align: center;
-                margin-top: 10px;
+                text-align: left;
+                font-size: 1.2rem;
+                margin-top: 0;
             }
             
             .start-here-container {
-                order: 1;
-                align-self: flex-start;
-                margin-bottom: 10px;
+                order: 2;
+                align-self: center;
+                margin-bottom: 0;
             }
             
             .start-here-btn {
@@ -904,12 +909,13 @@
         });
 
         // ============================================
-        // PAGE NAVIGATION FUNCTIONS
+        // PAGE NAVIGATION FUNCTIONS - UPDATED TO START ON MENU
         // ============================================
         let touchStartX = 0;
         let touchEndX = 0;
-        let currentPage = 'map'; // 'menu' or 'map'
+        let currentPage = 'menu'; // Changed from 'map' to 'menu'
         
+        // START ON MENU PAGE BY DEFAULT
         function showMapPage() {
             const container = document.getElementById('splitContainer');
             container.style.transform = 'translateX(-100vw)';
@@ -921,6 +927,9 @@
             container.style.transform = 'translateX(0)';
             currentPage = 'menu';
         }
+        
+        // Initialize to show menu page
+        showMenuPage();
         
         // Add touch events for mobile swipe
         document.addEventListener('touchstart', e => {
@@ -953,8 +962,8 @@
                 const container = document.getElementById('splitContainer');
                 container.style.transform = 'translateX(0)';
             } else {
-                // On mobile, start on map page
-                showMapPage();
+                // On mobile, start on menu page (removed showMapPage call)
+                // Menu page is already shown by default
             }
         }
 
@@ -1261,8 +1270,8 @@
             navigationSteps = [];
             currentInstructionIndex = 0;
             
-            // Switch to map page
-            showMapPage();
+            // Switch to menu page instead of map page
+            showMenuPage();
             
             if (voiceEnabled) speak("Route cleared");
         }
@@ -1521,7 +1530,7 @@
                 // Show Go button instead of Search
                 showGoButton();
                 
-                // Switch to map page to see the route
+                // Switch to map page to see the route (keeping this as it's useful)
                 showMapPage();
                 
                 showNotification('Route found! Click "Go" to start navigation.');
@@ -1552,11 +1561,28 @@
                 startAutoTracking();
             }
             
-            // Switch to map page for navigation
+            // Switch to map page for navigation (keep this for navigation)
             showMapPage();
             
             showNotification('Navigation started! Voice guidance will guide you.');
         }
+
+        // ============================================
+        // UPDATED START HERE BUTTON FUNCTION
+        // ============================================
+        document.getElementById('startHereBtn').addEventListener('click', function() {
+            getUserLocation().then(() => {
+                // Just get location, don't switch to map
+                showNotification('Location acquired! You can now search for directions.');
+                if (voiceEnabled) speak("Location ready. You can now search for directions.");
+                
+                // Auto-fill the "From" field but stay on menu page
+                document.getElementById('fromInput').value = "My Current Location";
+            }).catch(error => {
+                console.error('Location error:', error);
+                showNotification('Unable to get your location', 'error');
+            });
+        });
 
         async function searchSuggestions(query) {
             if (query.length < 2) {
@@ -1731,7 +1757,10 @@
                         
                         updateLocationStatus(`Location found! Accuracy: ${Math.round(userLocation.accuracy)}m`, 'success');
                         updateUserLocationMarker();
-                        map.setView([userLocation.lat, userLocation.lng], 15);
+                        
+                        // Don't switch to map automatically
+                        // map.setView([userLocation.lat, userLocation.lng], 15);
+                        
                         autoFillLocationField();
                         
                         // Start auto-tracking immediately
@@ -1739,8 +1768,7 @@
                         
                         document.getElementById('fromInput').value = "My Current Location";
                         
-                        // Switch to map page to see location
-                        showMapPage();
+                        // Stay on menu page - removed showMapPage call
                         
                         if (voiceEnabled) speak("Location found. Ready for navigation.");
                         
@@ -1922,10 +1950,6 @@
 
         document.getElementById('clearLocationBtn').addEventListener('click', clearLocation);
 
-        document.getElementById('startHereBtn').addEventListener('click', () => {
-            getUserLocation().catch(console.error);
-        });
-
         // ============================================
         // FORM SUBMISSION
         // ============================================
@@ -1973,8 +1997,8 @@
                     startAutoTracking();
                 }
                 
-                // Switch to map page
-                showMapPage();
+                // Stay on menu page instead of switching to map
+                // Removed showMapPage call
                 
                 showNotification('✅ Report submitted successfully!');
                 
@@ -2068,7 +2092,7 @@
                 map.setView([report.lat, report.lng], 16);
                 if (markers[report.id]) markers[report.id].openPopup();
                 
-                // Switch to map page
+                // Switch to map page when clicking on report
                 showMapPage();
             });
             
@@ -2116,7 +2140,7 @@
         setTimeout(() => {
             document.getElementById('loadingOverlay').style.display = 'none';
             validateForm();
-            showNotification('FilMap loaded! Voice navigation ready.');
+            showNotification('FilMap loaded! Click "Start Here" to begin.');
             if (voiceEnabled) speak("FilMap navigation ready");
         }, 1000);
 
