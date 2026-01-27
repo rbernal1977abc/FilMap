@@ -4,21 +4,144 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     
-    <title>FilMap - NCR Live Traffic with Directions</title>
+    <title>FilMap - NCR Traffic & Directions</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* BASIC STYLES */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 10px; }
-        .container { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2); height: calc(100vh - 20px); display: flex; flex-direction: column; }
-        header { background: linear-gradient(to right, #1e3c72, #2a5298); color: white; padding: 15px 20px; text-align: center; }
-        header h1 { font-size: 1.4rem; margin-bottom: 5px; }
-        header p { font-size: 0.9rem; opacity: 0.9; }
-        .main-content { display: flex; flex-direction: column; flex: 1; overflow: hidden; position: relative; }
-        #map { flex: 1; min-height: 300px; width: 100%; }
-        .sidebar { background: #f8f9fa; border-top: 3px solid #2a5298; padding: 15px; overflow-y: auto; max-height: 50vh; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Main container with split layout */
+        .split-container {
+            display: flex;
+            height: 100vh;
+            width: 200vw; /* 2x viewport width for split */
+            transition: transform 0.3s ease;
+        }
+        
+        .map-page, .menu-page {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Menu Page (Left) */
+        .menu-page {
+            background: #f8f9fa;
+            overflow-y: auto;
+        }
+        
+        .menu-page header {
+            background: linear-gradient(to right, #1e3c72, #2a5298);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .menu-page header h1 {
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+        }
+        
+        .menu-page header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .menu-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        
+        /* Map Page (Right) */
+        .map-page {
+            background: white;
+        }
+        
+        .map-page header {
+            background: linear-gradient(to right, #1e3c72, #2a5298);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .map-page header h1 {
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+        }
+        
+        #map {
+            flex: 1;
+            width: 100%;
+        }
+        
+        /* Swipe Indicator */
+        .swipe-indicator {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            background: rgba(30, 60, 114, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .swipe-indicator:hover {
+            background: rgba(30, 60, 114, 1);
+        }
+        
+        .swipe-indicator.right {
+            left: auto;
+            right: 10px;
+        }
+        
+        /* Map Controls */
+        .map-controls { 
+            position: absolute; 
+            bottom: 20px; 
+            right: 20px; 
+            z-index: 1000; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+        }
+        
+        .map-btn { 
+            background: linear-gradient(to bottom, #2a5298, #1e3c72); 
+            color: white; 
+            border: none; 
+            border-radius: 50px; 
+            padding: 12px 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2); 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 0.9rem;
+            gap: 8px;
+            min-width: 120px;
+        }
+        
+        /* Menu Styling */
         .section-header { 
             background: linear-gradient(to right, #1e3c72, #2a5298); 
             color: white; 
@@ -73,8 +196,6 @@
         .report-user { font-size: 0.8rem; color: #888; margin-top: 8px; }
         .notification { position: fixed; top: 10px; right: 10px; left: 10px; background: #4CAF50; color: white; padding: 15px; border-radius: 10px; display: none; z-index: 10000; text-align: center; }
         .notification.error { background: #f44336; }
-        .map-controls { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .map-btn { background: linear-gradient(to bottom, #2a5298, #1e3c72); color: white; border: none; border-radius: 50%; width: 50px; height: 50px; box-shadow: 0 3px 10px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
         
         /* Directions Input Group */
         .directions-input-group { margin-bottom: 15px; }
@@ -208,47 +329,6 @@
             min-width: 20px;
         }
         
-        /* Voice Control */
-        .voice-controls {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-            align-items: center;
-        }
-        .voice-btn {
-            background: linear-gradient(to right, #9C27B0, #7B1FA2);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-        }
-        .voice-btn.active {
-            background: linear-gradient(to right, #f44336, #d32f2f);
-        }
-        .voice-label {
-            font-size: 0.85rem;
-            color: #666;
-        }
-        
-        /* Leaflet Routing Machine Customization */
-        .leaflet-routing-container { 
-            background: white; 
-            border-radius: 10px; 
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
-            max-width: 400px; 
-            max-height: 500px; 
-            overflow: auto; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        .leaflet-routing-alt { max-height: 300px; }
-        .leaflet-routing-icon { background-color: #2a5298; }
-        
         /* Suggestions */
         #suggestions { 
             margin-top: 10px; 
@@ -295,47 +375,93 @@
             100% { opacity: 1; }
         }
         
-        @media (min-width: 768px) { 
-            .main-content { flex-direction: row; } 
-            .sidebar { width: 400px; max-height: none; border-left: 3px solid #2a5298; border-top: none; } 
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
         }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #1e3c72;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (min-width: 768px) {
+            .split-container {
+                width: 100vw;
+                transform: translateX(0) !important;
+            }
+            
+            .map-page, .menu-page {
+                width: 50vw;
+            }
+            
+            .swipe-indicator {
+                display: none;
+            }
+        }
+        
         @media (max-width: 767px) {
             .route-summary { flex-direction: column; gap: 10px; }
             .route-summary-item { flex: 1; }
-            .sidebar { max-height: 60vh; }
+            .map-btn {
+                min-width: 100px;
+                padding: 10px 15px;
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Loading overlay -->
-    <div class="loading-overlay" id="loadingOverlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; display: none;">
-        <div class="spinner" style="width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #1e3c72; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
         <p>Loading FilMap...</p>
     </div>
     
     <!-- Notification -->
     <div class="notification" id="notification"></div>
     
-    <!-- Main container -->
-    <div class="container">
-        <header>
-            <h1>🗺️ FilMap - NCR Live Traffic with Directions</h1>
-            <p>Real-time crowd-sourced traffic reports & routing for Metro Manila</p>
-        </header>
-        
-        <div class="main-content">
-            <!-- Map -->
-            <div id="map"></div>
+    <!-- Swipe indicator for menu -->
+    <div class="swipe-indicator" id="menuIndicator">
+        <i class="fas fa-bars"></i> Menu
+    </div>
+    
+    <!-- Swipe indicator for map -->
+    <div class="swipe-indicator right" id="mapIndicator" style="display: none;">
+        <i class="fas fa-map"></i> Map
+    </div>
+    
+    <!-- Main split container -->
+    <div class="split-container" id="splitContainer">
+        <!-- Menu Page (Left) -->
+        <div class="menu-page">
+            <header>
+                <h1>🗺️ FilMap</h1>
+                <p>NCR Traffic & Directions</p>
+            </header>
             
-            <!-- Map Controls - Removed Tracking Button -->
-            <div class="map-controls">
-                <button class="map-btn" id="locateBtn" title="Get My Location">
-                    <i class="fas fa-location-arrow"></i>
-                </button>
-            </div>
-            
-            <!-- Sidebar -->
-            <div class="sidebar">
+            <div class="menu-content">
                 <!-- GET DIRECTIONS SECTION -->
                 <div class="section-header" id="directionsHeader">
                     <h3><i class="fas fa-route"></i> Get Directions</h3>
@@ -391,17 +517,6 @@
                                 <span class="route-value" id="routeTurns">--</span>
                                 <span class="route-label">Turns</span>
                             </div>
-                        </div>
-                        
-                        <!-- Voice Controls -->
-                        <div class="voice-controls">
-                            <button class="voice-btn" id="voiceBtn" title="Toggle Voice Guidance">
-                                <i class="fas fa-volume-up"></i>
-                            </button>
-                            <span class="voice-label" id="voiceStatus">Voice: Off</span>
-                            <button class="voice-btn small" id="testVoiceBtn" title="Test Voice">
-                                <i class="fas fa-play"></i>
-                            </button>
                         </div>
                         
                         <h4 style="margin-top: 20px;"><i class="fas fa-directions"></i> Turn-by-Turn Directions</h4>
@@ -472,6 +587,22 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Map Page (Right) -->
+        <div class="map-page">
+            <header>
+                <h1>🗺️ FilMap</h1>
+                <p>NCR Traffic & Directions</p>
+            </header>
+            
+            <div id="map"></div>
+            
+            <div class="map-controls">
+                <button class="map-btn" id="locateBtn" title="Get My Location">
+                    <i class="fas fa-play-circle"></i> Start Here
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Libraries -->
@@ -533,7 +664,7 @@
         let isReportCollapsed = true;
         let activeRoute = null;
         let routeFound = false;
-        let voiceEnabled = false;
+        let voiceEnabled = false; // Auto-enabled when Go is clicked
         let speechSynthesis = window.speechSynthesis;
         let currentInstructionIndex = 0;
         let isNavigationMode = false;
@@ -594,6 +725,71 @@
         ];
 
         // ============================================
+        // SWIPE NAVIGATION FUNCTIONS
+        // ============================================
+        let touchStartX = 0;
+        let touchEndX = 0;
+        let currentPage = 'map'; // 'menu' or 'map'
+        
+        function showMapPage() {
+            const container = document.getElementById('splitContainer');
+            container.style.transform = 'translateX(-100vw)';
+            currentPage = 'map';
+            document.getElementById('menuIndicator').style.display = 'block';
+            document.getElementById('mapIndicator').style.display = 'none';
+        }
+        
+        function showMenuPage() {
+            const container = document.getElementById('splitContainer');
+            container.style.transform = 'translateX(0)';
+            currentPage = 'menu';
+            document.getElementById('menuIndicator').style.display = 'none';
+            document.getElementById('mapIndicator').style.display = 'block';
+        }
+        
+        // Initialize swipe indicators
+        document.getElementById('menuIndicator').addEventListener('click', showMenuPage);
+        document.getElementById('mapIndicator').addEventListener('click', showMapPage);
+        
+        // Add touch events for mobile swipe
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, false);
+        
+        document.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, false);
+        
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const swipeDistance = touchEndX - touchStartX;
+            
+            if (Math.abs(swipeDistance) > swipeThreshold) {
+                if (swipeDistance > 0 && currentPage === 'map') {
+                    // Swipe right on map page -> show menu
+                    showMenuPage();
+                } else if (swipeDistance < 0 && currentPage === 'menu') {
+                    // Swipe left on menu page -> show map
+                    showMapPage();
+                }
+            }
+        }
+        
+        // On desktop, show both pages side by side
+        function checkScreenSize() {
+            if (window.innerWidth >= 768) {
+                const container = document.getElementById('splitContainer');
+                container.style.transform = 'translateX(0)';
+                document.getElementById('menuIndicator').style.display = 'none';
+                document.getElementById('mapIndicator').style.display = 'none';
+            } else {
+                // On mobile, start on map page
+                showMapPage();
+            }
+        }
+        
+        // ============================================
         // VOICE FUNCTIONS
         // ============================================
         function speak(text) {
@@ -651,28 +847,21 @@
             };
         }
 
-        function toggleVoice() {
-            voiceEnabled = !voiceEnabled;
-            const voiceBtn = document.getElementById('voiceBtn');
-            const voiceStatus = document.getElementById('voiceStatus');
-            
-            if (voiceEnabled) {
-                voiceBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                voiceBtn.classList.add('active');
-                voiceStatus.textContent = 'Voice: On';
-                showNotification('Voice guidance enabled');
-                
-                // Test voice if it's the first time enabling
-                if (speechSynthesis) {
-                    speak("Voice guidance enabled. Ready for navigation.");
-                }
-            } else {
-                voiceBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                voiceBtn.classList.remove('active');
-                voiceStatus.textContent = 'Voice: Off';
-                speechSynthesis.cancel();
-                showNotification('Voice guidance disabled');
+        function enableVoiceNavigation() {
+            if (!speechSynthesis) {
+                showNotification('Voice navigation not supported in your browser', 'error');
+                return false;
             }
+            
+            voiceEnabled = true;
+            showNotification('Voice navigation enabled automatically');
+            
+            // Speak welcome message
+            if (speechSynthesis) {
+                speak("Voice navigation enabled. Ready to guide you.");
+            }
+            
+            return true;
         }
 
         function speakNavigationInstruction(instruction, distance) {
@@ -694,15 +883,6 @@
             }
             
             speak(speechText);
-        }
-
-        function testVoice() {
-            if (!speechSynthesis) {
-                showNotification('Speech synthesis not supported in your browser', 'error');
-                return;
-            }
-            
-            speak("This is a test of the voice guidance system. Voice navigation is working properly.");
         }
 
         // ============================================
@@ -779,22 +959,22 @@
                 activeRoute = null;
             }
             
-            // Show directions content again when clearing route
-            document.getElementById('directionsContent').classList.remove('collapsed');
-            document.getElementById('directionsHeader').querySelector('.toggle-icon').classList.remove('collapsed');
-            
             document.getElementById('routeInfo').style.display = 'none';
             document.getElementById('toInput').value = '';
             document.getElementById('routeInstructions').innerHTML = '';
             document.getElementById('suggestions').style.display = 'none';
             routeFound = false;
             isNavigationMode = false;
+            voiceEnabled = false; // Disable voice when clearing route
             
             // Switch back to search button
             showSearchButton();
             
             // Stop voice
             speechSynthesis.cancel();
+            
+            // Switch to map page
+            showMapPage();
         }
 
         function swapLocations() {
@@ -1025,12 +1205,8 @@
                 // Show Go button instead of Search
                 showGoButton();
                 
-                // Speak first instruction if voice is enabled
-                if (voiceEnabled && instructions.length > 0) {
-                    setTimeout(() => {
-                        speakNavigationInstruction(instructions[0], instructions[0].distance);
-                    }, 1000);
-                }
+                // Switch to map page to see the route
+                showMapPage();
                 
                 showNotification('Route found! Click "Go" to start navigation.');
             });
@@ -1047,9 +1223,32 @@
             
             isNavigationMode = true;
             
-            // Hide the directions panel when Go is clicked
-            document.getElementById('directionsContent').classList.add('collapsed');
-            document.getElementById('directionsHeader').querySelector('.toggle-icon').classList.add('collapsed');
+            // Enable voice navigation automatically
+            if (enableVoiceNavigation()) {
+                // Speak first instruction if available
+                const instructions = document.querySelectorAll('.instruction-step');
+                if (instructions.length > 0 && routingControl) {
+                    const route = routingControl.getPlan().waypoints;
+                    if (route && route.length >= 2) {
+                        speak("Starting navigation. Please follow the highlighted route.");
+                        
+                        // Speak first instruction after a delay
+                        setTimeout(() => {
+                            const firstStep = instructions[0];
+                            if (firstStep) {
+                                currentInstructionIndex = 0;
+                                const distanceText = firstStep.querySelector('.instruction-distance').textContent;
+                                const distance = parseFloat(distanceText.split(' ')[0]) * 1000; // Convert to meters
+                                
+                                // Get the instruction text
+                                const instructionText = firstStep.querySelector('.instruction-text').innerText;
+                                const instruction = { text: instructionText, distance: distance };
+                                speakNavigationInstruction(instruction, distance);
+                            }
+                        }, 1500);
+                    }
+                }
+            }
             
             // Zoom to appropriate level for navigation
             map.setZoom(15);
@@ -1059,12 +1258,10 @@
                 startAutoTracking();
             }
             
-            // Speak navigation start message
-            if (voiceEnabled) {
-                speak("Starting navigation. Please follow the highlighted route.");
-            }
+            // Switch to map page for navigation
+            showMapPage();
             
-            showNotification('Navigation started! Follow the highlighted route.');
+            showNotification('Navigation started! Voice guidance enabled.');
         }
 
         async function searchSuggestions(query) {
@@ -1248,6 +1445,9 @@
                         
                         document.getElementById('fromInput').value = "My Current Location";
                         
+                        // Switch to map page to see location
+                        showMapPage();
+                        
                         resolve(userLocation);
                     },
                     (error) => {
@@ -1407,10 +1607,6 @@
         document.getElementById('swapBtn').addEventListener('click', swapLocations);
         document.getElementById('searchRouteBtn').addEventListener('click', searchRoute);
 
-        // Voice handlers
-        document.getElementById('voiceBtn').addEventListener('click', toggleVoice);
-        document.getElementById('testVoiceBtn').addEventListener('click', testVoice);
-
         // Search suggestions with debounce
         document.getElementById('toInput').addEventListener('input', function(e) {
             clearTimeout(debounceTimer);
@@ -1475,6 +1671,9 @@
                 if (!isTracking && userLocation) {
                     startAutoTracking();
                 }
+                
+                // Switch to map page
+                showMapPage();
                 
                 showNotification('✅ Report submitted successfully!');
                 
@@ -1567,6 +1766,9 @@
             card.addEventListener('click', () => {
                 map.setView([report.lat, report.lng], 16);
                 if (markers[report.id]) markers[report.id].openPopup();
+                
+                // Switch to map page
+                showMapPage();
             });
             
             container.insertBefore(card, container.firstChild);
@@ -1605,11 +1807,15 @@
             };
         }
 
+        // Set up responsive layout
+        window.addEventListener('resize', checkScreenSize);
+        checkScreenSize();
+
         // Hide loading
         setTimeout(() => {
             document.getElementById('loadingOverlay').style.display = 'none';
             validateForm();
-            showNotification('FilMap loaded! Get directions or report traffic.');
+            showNotification('FilMap loaded! Click "Start Here" to begin.');
         }, 1000);
 
         // Load existing reports
