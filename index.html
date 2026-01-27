@@ -46,17 +46,22 @@
             text-align: center;
             flex-shrink: 0;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
         .menu-page header h1 {
             font-size: 1.4rem;
             margin-bottom: 5px;
+            order: 2;
         }
         
         .start-here-container {
-            position: absolute;
-            top: 15px;
-            left: 20px;
+            position: static;
+            align-self: flex-start;
+            margin-bottom: 10px;
+            order: 1;
         }
         
         .start-here-btn {
@@ -102,14 +107,9 @@
             width: 100%;
         }
         
-        /* Mobile Navigation Icons */
+        /* Mobile Navigation Icons - HIDDEN */
         .mobile-nav-icons {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            display: flex;
-            gap: 10px;
+            display: none !important;
         }
         
         .nav-icon-btn {
@@ -133,7 +133,7 @@
             transform: scale(1.1);
         }
         
-        /* Map Controls */
+        /* Map Controls - UPDATED */
         .map-controls { 
             position: absolute; 
             bottom: 20px; 
@@ -144,106 +144,33 @@
             gap: 10px; 
         }
         
-        /* Navigation Panel - Collapsible */
-        .navigation-panel {
-            position: absolute;
-            top: 80px;
-            right: 20px;
+        /* Location Button */
+        .location-btn {
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            width: 300px;
-            max-width: 90vw;
-            z-index: 1000;
-            overflow: hidden;
-            display: none;
-        }
-        
-        .navigation-header {
-            background: linear-gradient(to right, #1e3c72, #2a5298);
-            color: white;
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-        }
-        
-        .navigation-header h3 {
-            margin: 0;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .navigation-toggle {
-            background: none;
+            color: #1e3c72;
             border: none;
-            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
             cursor: pointer;
-            font-size: 1rem;
-            transition: transform 0.3s;
-        }
-        
-        .navigation-toggle.collapsed {
-            transform: rotate(180deg);
-        }
-        
-        .navigation-content {
-            padding: 15px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .navigation-step {
-            padding: 10px;
-            border-left: 3px solid #2196F3;
-            margin-bottom: 10px;
-            background: #f8f9fa;
-            border-radius: 0 5px 5px 0;
-            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
             transition: all 0.3s;
         }
         
-        .navigation-step:hover {
-            background: #e9ecef;
-            transform: translateX(3px);
+        .location-btn:hover {
+            background: #f0f0f0;
+            transform: scale(1.1);
         }
         
-        .navigation-step.active {
-            border-left-color: #4CAF50;
-            background: #e8f5e9;
+        /* Navigation Panel - REMOVED (commented out styles kept but will not be used) */
+        .navigation-panel {
+            display: none !important;
         }
         
-        .navigation-step.voicing {
-            animation: pulseVoice 1.5s infinite;
-        }
-        
-        @keyframes pulseVoice {
-            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
-            70% { box-shadow: 0 0 0 5px rgba(76, 175, 80, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
-        }
-        
-        .step-text {
-            font-weight: 500;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .step-distance {
-            font-size: 0.8rem;
-            color: #666;
-            margin-left: 24px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        /* Menu Styling */
         .section-header { 
             background: linear-gradient(to right, #1e3c72, #2a5298); 
             color: white; 
@@ -513,31 +440,76 @@
                 display: none;
             }
             
-            .navigation-panel {
-                top: 90px;
-                right: 30px;
+            .menu-page header {
+                flex-direction: row;
+                justify-content: space-between;
             }
-        }
-        
-        @media (max-width: 767px) {
-            .route-summary { flex-direction: column; gap: 10px; }
-            .route-summary-item { flex: 1; }
             
-            .navigation-panel {
-                top: 70px;
-                right: 10px;
-                width: calc(100vw - 20px);
-                max-width: none;
+            .menu-page header h1 {
+                order: 1;
+                margin-bottom: 0;
             }
             
             .start-here-container {
                 position: static;
-                margin-top: 10px;
+                order: 2;
+                margin-bottom: 0;
+            }
+        }
+        
+        @media (max-width: 767px) {
+            .split-container {
+                width: 200vw;
+            }
+            
+            .map-page, .menu-page {
+                width: 100vw;
+            }
+            
+            .menu-page header {
+                padding: 12px 15px;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .menu-page header h1 {
+                order: 2;
+                align-self: center;
+                width: 100%;
                 text-align: center;
+                margin-top: 10px;
+            }
+            
+            .start-here-container {
+                order: 1;
+                align-self: flex-start;
+                margin-bottom: 10px;
             }
             
             .start-here-btn {
-                margin: 0 auto;
+                padding: 8px 16px;
+                font-size: 0.85rem;
+            }
+            
+            .route-summary { 
+                flex-direction: column; 
+                gap: 10px; 
+            }
+            .route-summary-item { flex: 1; }
+            
+            .navigation-panel {
+                display: none;
+            }
+            
+            /* Ensure content fits in mobile viewport */
+            .menu-content {
+                padding: 0 15px;
+                overflow-y: auto;
+                height: calc(100vh - 140px);
+            }
+            
+            .section-content {
+                padding: 15px;
             }
         }
     </style>
@@ -552,7 +524,7 @@
     <!-- Notification -->
     <div class="notification" id="notification"></div>
     
-    <!-- Mobile Navigation Icons (Right side above report traffic) -->
+    <!-- Mobile Navigation Icons - HIDDEN -->
     <div class="mobile-nav-icons" id="mobileNavIcons" style="display: none;">
         <button class="nav-icon-btn" id="menuIconBtn" title="Open Menu">
             <i class="fas fa-bars"></i>
@@ -562,19 +534,11 @@
         </button>
     </div>
     
-    <!-- Navigation Panel (Collapsible) -->
-    <div class="navigation-panel" id="navigationPanel">
-        <div class="navigation-header" id="navigationHeader">
-            <h3><i class="fas fa-directions"></i> Navigation</h3>
-            <button class="navigation-toggle" id="navigationToggle">
-                <i class="fas fa-chevron-up"></i>
-            </button>
-        </div>
-        <div class="navigation-content" id="navigationContent">
-            <div id="navigationSteps">
-                <!-- Navigation steps will be added here -->
-            </div>
-        </div>
+    <!-- Location Button on Map -->
+    <div class="map-controls" id="mapControls">
+        <button class="location-btn" id="goToLocationBtn" title="Go to my location">
+            <i class="fas fa-location-arrow"></i>
+        </button>
     </div>
     
     <!-- Main split container -->
@@ -791,7 +755,6 @@
         let currentInstructionIndex = 0;
         let isNavigationMode = false;
         let navigationSteps = [];
-        let isNavigationPanelCollapsed = false;
         
         const typeConfig = {
             light: { color: '#4CAF50', label: 'Light Traffic', emoji: '✅' },
@@ -849,122 +812,20 @@
         ];
 
         // ============================================
-        // NAVIGATION PANEL FUNCTIONS
+        // GO TO LOCATION BUTTON FUNCTIONALITY
         // ============================================
-        function toggleNavigationPanel() {
-            const toggleBtn = document.getElementById('navigationToggle');
-            const content = document.getElementById('navigationContent');
-            
-            if (isNavigationPanelCollapsed) {
-                // Expand
-                content.style.display = 'block';
-                toggleBtn.classList.remove('collapsed');
-                isNavigationPanelCollapsed = false;
+        document.getElementById('goToLocationBtn').addEventListener('click', function() {
+            if (userLocation) {
+                map.setView([userLocation.lat, userLocation.lng], 15);
+                showNotification('Centered on your location');
             } else {
-                // Collapse
-                content.style.display = 'none';
-                toggleBtn.classList.add('collapsed');
-                isNavigationPanelCollapsed = true;
-            }
-        }
-
-        function showNavigationPanel() {
-            document.getElementById('navigationPanel').style.display = 'block';
-            isNavigationPanelCollapsed = false;
-            document.getElementById('navigationContent').style.display = 'block';
-            document.getElementById('navigationToggle').classList.remove('collapsed');
-        }
-
-        function hideNavigationPanel() {
-            document.getElementById('navigationPanel').style.display = 'none';
-        }
-
-        function updateNavigationSteps(steps) {
-            const stepsContainer = document.getElementById('navigationSteps');
-            stepsContainer.innerHTML = '';
-            
-            navigationSteps = steps;
-            
-            steps.forEach((step, index) => {
-                const stepDiv = document.createElement('div');
-                stepDiv.className = 'navigation-step';
-                stepDiv.dataset.index = index;
-                if (index === 0) stepDiv.classList.add('active');
-                
-                // Get appropriate icon
-                let icon = 'fas fa-arrow-right';
-                if (step.text.includes('left')) icon = 'fas fa-arrow-left';
-                else if (step.text.includes('right')) icon = 'fas fa-arrow-right';
-                else if (step.text.includes('Continue') || step.text.includes('Keep')) icon = 'fas fa-arrow-up';
-                else if (step.text.includes('Arrive')) icon = 'fas fa-flag-checkered';
-                else if (step.text.includes('Head')) icon = 'fas fa-road';
-                else if (step.text.includes('Destination')) icon = 'fas fa-map-marker-alt';
-                
-                stepDiv.innerHTML = `
-                    <div class="step-text">
-                        <i class="${icon}"></i>
-                        ${step.text}
-                    </div>
-                    <div class="step-distance">
-                        <i class="fas fa-road"></i>
-                        ${(step.distance / 1000).toFixed(2)} km
-                    </div>
-                `;
-                
-                stepDiv.addEventListener('click', () => {
-                    speakNavigationInstruction(step, step.distance);
-                    currentInstructionIndex = index;
-                    
-                    // Highlight clicked step
-                    document.querySelectorAll('.navigation-step').forEach(stepEl => {
-                        stepEl.classList.remove('active');
-                    });
-                    stepDiv.classList.add('active');
-                    
-                    // Highlight on menu page too
-                    const menuSteps = document.querySelectorAll('.instruction-step');
-                    if (menuSteps[index]) {
-                        menuSteps.forEach(s => s.classList.remove('active'));
-                        menuSteps[index].classList.add('active');
-                    }
+                getUserLocation().then(() => {
+                    map.setView([userLocation.lat, userLocation.lng], 15);
+                }).catch(error => {
+                    showNotification('Unable to get your location', 'error');
                 });
-                
-                stepsContainer.appendChild(stepDiv);
-            });
-        }
-
-        // Initialize navigation panel toggle
-        document.getElementById('navigationHeader').addEventListener('click', toggleNavigationPanel);
-
-        // ============================================
-        // MOBILE NAVIGATION ICONS
-        // ============================================
-        function showMobileNavIcons() {
-            document.getElementById('mobileNavIcons').style.display = 'flex';
-        }
-        
-        function hideMobileNavIcons() {
-            document.getElementById('mobileNavIcons').style.display = 'none';
-        }
-        
-        function updateMobileNavIcons() {
-            if (window.innerWidth < 768) {
-                showMobileNavIcons();
-                if (currentPage === 'map') {
-                    document.getElementById('menuIconBtn').style.display = 'flex';
-                    document.getElementById('mapIconBtn').style.display = 'none';
-                } else {
-                    document.getElementById('menuIconBtn').style.display = 'none';
-                    document.getElementById('mapIconBtn').style.display = 'flex';
-                }
-            } else {
-                hideMobileNavIcons();
             }
-        }
-        
-        // Initialize mobile nav icons
-        document.getElementById('menuIconBtn').addEventListener('click', showMenuPage);
-        document.getElementById('mapIconBtn').addEventListener('click', showMapPage);
+        });
 
         // ============================================
         // PAGE NAVIGATION FUNCTIONS
@@ -977,14 +838,12 @@
             const container = document.getElementById('splitContainer');
             container.style.transform = 'translateX(-100vw)';
             currentPage = 'map';
-            updateMobileNavIcons();
         }
         
         function showMenuPage() {
             const container = document.getElementById('splitContainer');
             container.style.transform = 'translateX(0)';
             currentPage = 'menu';
-            updateMobileNavIcons();
         }
         
         // Add touch events for mobile swipe
@@ -1017,14 +876,12 @@
             if (window.innerWidth >= 768) {
                 const container = document.getElementById('splitContainer');
                 container.style.transform = 'translateX(0)';
-                hideMobileNavIcons();
             } else {
                 // On mobile, start on map page
                 showMapPage();
-                updateMobileNavIcons();
             }
         }
-        
+
         // ============================================
         // VOICE FUNCTIONS
         // ============================================
@@ -1062,25 +919,8 @@
                 if (englishVoice) utterance.voice = englishVoice;
             }
             
-            // Highlight the step being spoken
-            const steps = document.querySelectorAll('.navigation-step');
-            steps.forEach((step, index) => {
-                step.classList.remove('voicing');
-            });
-            
-            if (steps[currentInstructionIndex]) {
-                steps[currentInstructionIndex].classList.add('voicing');
-            }
-            
             // Speak the text
             speechSynthesis.speak(utterance);
-            
-            // Remove highlighting when done
-            utterance.onend = function() {
-                if (steps[currentInstructionIndex]) {
-                    steps[currentInstructionIndex].classList.remove('voicing');
-                }
-            };
         }
 
         function enableVoiceNavigation() {
@@ -1195,9 +1035,6 @@
                 activeRoute = null;
             }
             
-            // Hide navigation panel
-            hideNavigationPanel();
-            
             document.getElementById('routeInfo').style.display = 'none';
             document.getElementById('toInput').value = '';
             document.getElementById('routeInstructions').innerHTML = '';
@@ -1210,7 +1047,9 @@
             showSearchButton();
             
             // Stop voice
-            speechSynthesis.cancel();
+            if (speechSynthesis) {
+                speechSynthesis.cancel();
+            }
             
             // Switch to map page
             showMapPage();
@@ -1389,8 +1228,8 @@
                 const instructionsDiv = document.getElementById('routeInstructions');
                 instructionsDiv.innerHTML = '';
                 
-                // Prepare navigation steps for map panel
-                const navSteps = [];
+                // Prepare navigation steps
+                navigationSteps = [];
                 
                 instructions.forEach((instruction, index) => {
                     const stepDiv = document.createElement('div');
@@ -1428,27 +1267,17 @@
                             step.classList.remove('active');
                         });
                         stepDiv.classList.add('active');
-                        
-                        // Highlight in navigation panel too
-                        const navSteps = document.querySelectorAll('.navigation-step');
-                        if (navSteps[index]) {
-                            navSteps.forEach(s => s.classList.remove('active'));
-                            navSteps[index].classList.add('active');
-                        }
                     });
                     
                     instructionsDiv.appendChild(stepDiv);
                     
                     // Add to navigation steps array
-                    navSteps.push({
+                    navigationSteps.push({
                         text: instruction.text,
                         distance: instruction.distance,
                         icon: icon
                     });
                 });
-                
-                // Update navigation panel
-                updateNavigationSteps(navSteps);
                 
                 // Highlight the route on map
                 activeRoute = L.polyline(routes[0].coordinates, {
@@ -1481,9 +1310,6 @@
             }
             
             isNavigationMode = true;
-            
-            // Show navigation panel
-            showNavigationPanel();
             
             // Enable voice navigation automatically
             if (enableVoiceNavigation()) {
