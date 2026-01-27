@@ -1173,11 +1173,15 @@
                 map.removeLayer(activeRoute);
             }
 
-            // Create new route
+            // Create new route WITHOUT the Leaflet Routing Machine control panel
             routingControl = L.Routing.control({
                 waypoints: [fromLatLng, toLatLng],
                 routeWhileDragging: false,
                 showAlternatives: false,
+                addWaypoints: false, // Prevents adding waypoints via UI
+                draggableWaypoints: false, // Prevents dragging waypoints
+                fitSelectedRoutes: false, // Don't automatically fit the route
+                show: false, // Don't show the control panel at all
                 lineOptions: {
                     styles: [{ color: '#1e3c72', weight: 5, opacity: 0.7 }]
                 },
