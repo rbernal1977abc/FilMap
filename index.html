@@ -99,11 +99,32 @@
             padding: 15px 20px;
             text-align: center;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         
         .map-page header h1 {
             font-size: 1.4rem;
-            margin-bottom: 5px;
+            margin-bottom: 0;
+            flex: 1;
+        }
+        
+        .swipe-indicator {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin-left: 10px;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .swipe-indicator i {
+            font-size: 0.7rem;
         }
         
         #map {
@@ -213,7 +234,15 @@
         button.danger { background: linear-gradient(to right, #f44336, #d32f2f); }
         button.small { padding: 12px 15px; font-size: 0.9rem; }
         button.info { background: linear-gradient(to right, #2196F3, #1976D2); }
-        button.go { background: linear-gradient(to right, #4CAF50, #45a049); }
+        button.go { 
+            background: linear-gradient(to right, #4CAF50, #45a049);
+            transform: scale(0.95);
+            box-shadow: inset 0 3px 5px rgba(0,0,0,0.2);
+        }
+        button.go:hover {
+            transform: scale(0.95);
+            background: linear-gradient(to right, #45a049, #3d8b40);
+        }
         .location-status { padding: 12px 15px; border-radius: 10px; margin-bottom: 15px; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; }
         .location-status.success { background: #d4edda; color: #155724; border-left: 4px solid #4CAF50; }
         .location-status.error { background: #f8d7da; color: #721c24; border-left: 4px solid #f44336; }
@@ -429,7 +458,7 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* Voice Control */
+        /* Voice Control - MOVED TO MAP PAGE */
         .voice-control {
             position: absolute;
             bottom: 80px;
@@ -493,6 +522,10 @@
                 order: 2;
                 margin-bottom: 0;
             }
+            
+            .map-page header .swipe-indicator {
+                display: none;
+            }
         }
         
         @media (max-width: 767px) {
@@ -550,6 +583,11 @@
             .section-content {
                 padding: 15px;
             }
+            
+            .map-page header .swipe-indicator {
+                font-size: 0.75rem;
+                padding: 4px 8px;
+            }
         }
     </style>
 </head>
@@ -573,7 +611,7 @@
         </button>
     </div>
     
-    <!-- Voice Control Button -->
+    <!-- Voice Control Button - MOVED TO MAP PAGE -->
     <div class="voice-control" id="voiceControl">
         <button class="voice-btn" id="toggleVoiceBtn" title="Toggle Voice Guidance">
             <i class="fas fa-volume-up"></i>
@@ -731,6 +769,9 @@
         <div class="map-page">
             <header>
                 <h1>🗺️ FilMap</h1>
+                <div class="swipe-indicator">
+                    <i class="fas fa-arrow-right"></i> Swipe right here to Menu
+                </div>
             </header>
             
             <div id="map"></div>
@@ -1206,7 +1247,7 @@
         document.getElementById('reportHeader').addEventListener('click', () => toggleSection('report'));
 
         // ============================================
-        // DIRECTION FUNCTIONS
+        // UPDATED DIRECTION FUNCTIONS
         // ============================================
         function showGoButton() {
             const directionButtons = document.getElementById('directionButtons');
@@ -1234,7 +1275,15 @@
                 </button>
             `;
             
-            document.getElementById('searchRouteBtn').addEventListener('click', searchRoute);
+            document.getElementById('searchRouteBtn').addEventListener('click', function() {
+                searchRoute();
+                // Auto-click Go button after a short delay
+                setTimeout(() => {
+                    if (routeFound) {
+                        startNavigation();
+                    }
+                }, 500);
+            });
             document.getElementById('clearRouteBtn').addEventListener('click', clearRoute);
         }
 
@@ -1530,11 +1579,11 @@
                 // Show Go button instead of Search
                 showGoButton();
                 
-                // Switch to map page to see the route (keeping this as it's useful)
+                // Switch to map page to see the route
                 showMapPage();
                 
-                showNotification('Route found! Click "Go" to start navigation.');
-                if (voiceEnabled) speak("Route found. Ready to navigate.");
+                showNotification('Route found! Navigation starting automatically...');
+                if (voiceEnabled) speak("Route found. Starting navigation.");
             });
 
             // Fit map to route bounds
@@ -1561,7 +1610,7 @@
                 startAutoTracking();
             }
             
-            // Switch to map page for navigation (keep this for navigation)
+            // Switch to map page for navigation
             showMapPage();
             
             showNotification('Navigation started! Voice guidance will guide you.');
@@ -1768,7 +1817,7 @@
                         
                         document.getElementById('fromInput').value = "My Current Location";
                         
-                        // Stay on menu page - removed showMapPage call
+                        // Stay on menu page
                         
                         if (voiceEnabled) speak("Location found. Ready for navigation.");
                         
@@ -1934,7 +1983,6 @@
         // ============================================
         // Direction handlers
         document.getElementById('swapBtn').addEventListener('click', swapLocations);
-        document.getElementById('searchRouteBtn').addEventListener('click', searchRoute);
 
         // Search suggestions with debounce
         document.getElementById('toInput').addEventListener('input', function(e) {
@@ -1998,7 +2046,6 @@
                 }
                 
                 // Stay on menu page instead of switching to map
-                // Removed showMapPage call
                 
                 showNotification('✅ Report submitted successfully!');
                 
@@ -2155,6 +2202,9 @@
                 });
             }
         });
+
+        // Initialize the search button with auto-go functionality
+        showSearchButton();
 
         console.log("✅ FilMap with Auto Voice Navigation loaded!");
     </script>
