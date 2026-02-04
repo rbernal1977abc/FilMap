@@ -100,7 +100,7 @@
             z-index: 1;
         }
         
-        /* Swipe indicator in bottom left - UPDATED TO REMOVE SMALL BOX */
+        /* Swipe indicator in bottom left */
         .swipe-indicator {
             position: absolute;
             bottom: 20px;
@@ -624,7 +624,7 @@
         </button>
     </div>
     
-    <!-- Swipe indicator - UPDATED: Removed the small box styling -->
+    <!-- Swipe indicator -->
     <div class="swipe-indicator" id="swipeIndicator">
         <i class="fas fa-arrow-right"></i> Swipe right to Menu
     </div>
@@ -795,14 +795,17 @@
             `;
         }
 
-        // Initialize Map (Simplified)
+        // Initialize Map (Simplified) - UPDATED TO REMOVE WHITE BOX
         let map;
         try {
-            map = L.map('map').setView([14.5995, 120.9842], 12);
+            // Remove default controls (white box)
+            map = L.map('map', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([14.5995, 120.9842], 12);
             
-            // Add default tile layer
+            // Add default tile layer without attribution
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap',
                 maxZoom: 19
             }).addTo(map);
             
@@ -846,6 +849,8 @@
         let isVoiceActive = false;
         let lastSpokenInstruction = null;
         let userOnRoute = true;
+        let lastNotificationTime = 0;
+        const NOTIFICATION_COOLDOWN = 2000; // 2 seconds cooldown
 
         // ============================================
         // PAGE NAVIGATION FUNCTIONS
@@ -905,18 +910,17 @@
         });
 
         // ============================================
-        // VOICE FUNCTIONS
+        // VOICE FUNCTIONS - UPDATED TO PREVENT REPETITION
         // ============================================
         document.getElementById('toggleVoiceBtn').addEventListener('click', function() {
             voiceEnabled = !voiceEnabled;
             const btn = document.getElementById('toggleVoiceBtn');
             if (voiceEnabled) {
                 btn.classList.add('active');
-                showNotification('Voice guidance enabled');
-                speak("Voice guidance enabled");
+                showNotification('Voice guidance enabled', false); // Don't speak this
             } else {
                 btn.classList.remove('active');
-                showNotification('Voice guidance disabled');
+                showNotification('Voice guidance disabled', false); // Don't speak this
                 if (speechSynthesis) {
                     speechSynthesis.cancel();
                 }
@@ -926,8 +930,13 @@
         // Initialize voice button state
         document.getElementById('toggleVoiceBtn').classList.add('active');
 
-        function speak(text) {
+        function speak(text, force = false) {
             if (!voiceEnabled || !speechSynthesis) return;
+            
+            // Prevent repeating the same instruction
+            if (!force && text === lastSpokenInstruction) {
+                return;
+            }
             
             speechSynthesis.cancel();
             
@@ -935,6 +944,9 @@
             utterance.rate = 1.0;
             utterance.pitch = 1.1;
             utterance.volume = 1;
+            
+            // Store last spoken instruction
+            lastSpokenInstruction = text;
             
             speechSynthesis.speak(utterance);
         }
@@ -945,25 +957,23 @@
         document.getElementById('goToLocationBtn').addEventListener('click', function() {
             if (userLocation) {
                 map.setView([userLocation.lat, userLocation.lng], 15);
-                showNotification('Centered on your location');
-                if (voiceEnabled) speak("Centered on your location");
+                showNotification('Centered on your location', true);
             } else {
                 getUserLocation().then(() => {
                     map.setView([userLocation.lat, userLocation.lng], 15);
                 }).catch(error => {
-                    showNotification('Unable to get your location', 'error');
+                    showNotification('Unable to get your location', 'error', false);
                 });
             }
         });
 
         document.getElementById('startHereBtn').addEventListener('click', function() {
             getUserLocation().then(() => {
-                showNotification('Location acquired! You can now search for directions.');
-                if (voiceEnabled) speak("Location ready. You can now search for directions.");
+                showNotification('Location acquired! You can now search for directions.', true);
                 document.getElementById('fromInput').value = "My Current Location";
             }).catch(error => {
                 console.error('Location error:', error);
-                showNotification('Unable to get your location', 'error');
+                showNotification('Unable to get your location', 'error', false);
             });
         });
 
@@ -993,8 +1003,6 @@
                         startAutoTracking();
                         
                         document.getElementById('fromInput').value = "My Current Location";
-                        
-                        if (voiceEnabled) speak("Location found. Ready for navigation.");
                         
                         resolve(userLocation);
                     },
@@ -1062,7 +1070,7 @@
             const toValue = document.getElementById('toInput').value;
             
             if (fromValue === "My Current Location") {
-                showNotification("Cannot swap with current location", "error");
+                showNotification("Cannot swap with current location", "error", false);
                 return;
             }
             
@@ -1077,8 +1085,7 @@
         async function searchRoute() {
             const toInput = document.getElementById('toInput').value.trim();
             if (!toInput) {
-                showNotification('Please enter a destination', 'error');
-                if (voiceEnabled) speak("Please enter a destination");
+                showNotification('Please enter a destination', 'error', true);
                 return;
             }
 
@@ -1089,8 +1096,7 @@
             if (userLocation) {
                 fromLatLng = L.latLng(userLocation.lat, userLocation.lng);
             } else {
-                showNotification('Please enable location services or enter a starting point', 'error');
-                if (voiceEnabled) speak("Please enable location services");
+                showNotification('Please enable location services or enter a starting point', 'error', true);
                 return;
             }
 
@@ -1105,14 +1111,13 @@
                     if (data.length > 0) {
                         toLatLng = L.latLng(parseFloat(data[0].lat), parseFloat(data[0].lon));
                     } else {
-                        showNotification('Destination not found', 'error');
-                        if (voiceEnabled) speak("Destination not found");
+                        showNotification('Destination not found', 'error', true);
                         return;
                     }
                 }
             } catch (error) {
                 console.error('Geocoding error:', error);
-                showNotification('Error finding destination', 'error');
+                showNotification('Error finding destination', 'error', false);
                 return;
             }
 
@@ -1229,8 +1234,7 @@
                 // Switch to map page
                 showMapPage();
                 
-                showNotification('Route found!');
-                if (voiceEnabled) speak("Route found.");
+                showNotification('Route found!', true);
             });
 
             map.fitBounds([fromLatLng, toLatLng], { padding: [50, 50] });
@@ -1255,7 +1259,7 @@
             
             showMenuPage();
             
-            if (voiceEnabled) speak("Route cleared");
+            speak("Route cleared", true);
         }
 
         // ============================================
@@ -1406,7 +1410,7 @@
             const description = document.getElementById('description').value.trim();
             
             if (!selectedLocation) {
-                showNotification('Please select a location first', 'error');
+                showNotification('Please select a location first', 'error', false);
                 return;
             }
 
@@ -1434,11 +1438,11 @@
                 selectedLocation = null;
                 validateForm();
                 
-                showNotification('✅ Report submitted successfully!');
+                showNotification('✅ Report submitted successfully!', true);
                 
             } catch (error) {
                 console.error('Submission error:', error);
-                showNotification('❌ Error: ' + error.message, 'error');
+                showNotification('❌ Error: ' + error.message, 'error', false);
             }
         });
 
@@ -1465,13 +1469,20 @@
         });
 
         // ============================================
-        // HELPER FUNCTIONS
+        // HELPER FUNCTIONS - UPDATED
         // ============================================
-        function showNotification(message, type = 'success') {
+        function showNotification(message, type = 'success', shouldSpeak = false) {
             const notification = document.getElementById('notification');
             notification.textContent = message;
             notification.className = `notification ${type}`;
             notification.style.display = 'block';
+            
+            // Prevent voice spam with cooldown
+            const now = Date.now();
+            if (shouldSpeak && voiceEnabled && (now - lastNotificationTime > NOTIFICATION_COOLDOWN)) {
+                speak(message, true);
+                lastNotificationTime = now;
+            }
             
             setTimeout(() => {
                 notification.style.display = 'none';
@@ -1503,8 +1514,7 @@
         window.addEventListener('load', function() {
             setTimeout(() => {
                 document.getElementById('loadingOverlay').style.display = 'none';
-                showNotification('FilMap loaded! Click "Start Here" to begin.');
-                if (voiceEnabled) speak("FilMap navigation ready");
+                showNotification('FilMap loaded! Click "Start Here" to begin.', true);
             }, 1500);
         });
 
