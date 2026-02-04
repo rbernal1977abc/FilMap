@@ -100,7 +100,7 @@
             z-index: 1;
         }
         
-        /* Swipe indicator in bottom left */
+        /* Swipe indicator in bottom left - UPDATED TO REMOVE SMALL BOX */
         .swipe-indicator {
             position: absolute;
             bottom: 20px;
@@ -158,12 +158,11 @@
             transform: scale(1.1);
         }
         
-        /* Navigation Panels on Map */
+        /* Navigation Panels on Map - UPDATED TO RIGHT SIDE */
         .route-panel {
             position: absolute;
             top: 20px;
-            left: 20px;
-            right: 20px;
+            right: 20px; /* Changed from left: 20px; right: 20px; */
             z-index: 1000;
             background: white;
             border-radius: 15px;
@@ -171,6 +170,8 @@
             overflow: hidden;
             display: none;
             max-height: 80vh;
+            width: 350px; /* Added fixed width */
+            max-width: calc(100% - 40px); /* Ensure it doesn't overflow on mobile */
         }
         
         .route-panel.active {
@@ -504,7 +505,8 @@
             
             .route-panel {
                 max-width: 400px;
-                right: auto;
+                right: 20px; /* Keep on right side */
+                left: auto; /* Ensure it doesn't inherit left positioning */
             }
             
             .menu-content {
@@ -554,8 +556,10 @@
             }
             
             .route-panel {
-                left: 10px;
-                right: 10px;
+                right: 10px; /* Keep on right side */
+                left: 10px; /* Only on mobile for full width */
+                width: auto; /* Full width on mobile */
+                max-width: calc(100% - 20px);
             }
             
             .swipe-indicator {
@@ -577,7 +581,7 @@
     <!-- Notification -->
     <div class="notification" id="notification"></div>
     
-    <!-- Route Panel on Map (Collapsible) -->
+    <!-- Route Panel on Map (Collapsible) - NOW ON RIGHT SIDE -->
     <div class="route-panel" id="routePanel">
         <div class="route-panel-header" id="routePanelHeader">
             <h3><i class="fas fa-route"></i> Route to Destination</h3>
@@ -620,7 +624,7 @@
         </button>
     </div>
     
-    <!-- Swipe indicator -->
+    <!-- Swipe indicator - UPDATED: Removed the small box styling -->
     <div class="swipe-indicator" id="swipeIndicator">
         <i class="fas fa-arrow-right"></i> Swipe right to Menu
     </div>
@@ -1218,7 +1222,7 @@
                     className: 'active-route'
                 }).addTo(map);
                 
-                // Show route panel
+                // Show route panel - NOW ON RIGHT SIDE
                 document.getElementById('routePanel').classList.add('active');
                 routeFound = true;
                 
