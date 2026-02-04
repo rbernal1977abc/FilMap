@@ -33,7 +33,7 @@
             flex-direction: column;
         }
         
-        /* Menu Page (Left) - UPDATED HEADER */
+        /* Menu Page (Left) - CLEANER HEADER */
         .menu-page {
             background: #f8f9fa;
             overflow-y: auto;
@@ -88,48 +88,44 @@
             transform: translateY(-2px);
         }
         
-        /* Map Page (Right) */
+        /* Map Page (Right) - REMOVED BLUE HEADER */
         .map-page {
             background: white;
+            position: relative;
         }
         
         .map-page header {
-            background: linear-gradient(to right, #1e3c72, #2a5298);
-            color: white;
-            padding: 15px 20px;
-            text-align: center;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            display: none; /* Remove blue header */
         }
         
-        .map-page header h1 {
-            font-size: 1.4rem;
-            margin-bottom: 0;
-            flex: 1;
-        }
-        
+        /* Swipe indicator in bottom left */
         .swipe-indicator {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.9);
-            background: rgba(0, 0, 0, 0.2);
-            padding: 5px 10px;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            font-size: 0.75rem;
+            color: black;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 6px 12px;
             border-radius: 15px;
-            margin-left: 10px;
             white-space: nowrap;
             display: flex;
             align-items: center;
             gap: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid #ddd;
         }
         
         .swipe-indicator i {
             font-size: 0.7rem;
+            color: #1e3c72;
         }
         
         #map {
             flex: 1;
             width: 100%;
+            z-index: 1;
         }
         
         /* Mobile Navigation Icons - HIDDEN */
@@ -158,10 +154,10 @@
             transform: scale(1.1);
         }
         
-        /* Map Controls - UPDATED */
+        /* Map Controls */
         .map-controls { 
             position: absolute; 
-            bottom: 20px; 
+            bottom: 80px; 
             right: 20px; 
             z-index: 1000; 
             display: flex; 
@@ -191,9 +187,56 @@
             transform: scale(1.1);
         }
         
-        /* Navigation Panel - REMOVED (commented out styles kept but will not be used) */
-        .navigation-panel {
-            display: none !important;
+        /* Navigation Panels on Map */
+        .route-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            overflow: hidden;
+            display: none;
+            max-height: 80vh;
+        }
+        
+        .route-panel.active {
+            display: block;
+        }
+        
+        .route-panel-header {
+            background: linear-gradient(to right, #1e3c72, #2a5298);
+            color: white;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .route-panel-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .route-panel-content {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 15px;
+            background: white;
+        }
+        
+        .panel-toggle-icon {
+            transition: transform 0.3s;
+        }
+        
+        .panel-toggle-icon.collapsed {
+            transform: rotate(-90deg);
         }
         
         .section-header { 
@@ -301,28 +344,15 @@
             cursor: pointer; 
             margin-left: 22px;
         }
-        .route-info { 
-            background: #f8f9fa; 
-            border-radius: 10px; 
-            padding: 15px; 
-            margin-top: 15px; 
-            display: none;
-        }
-        .route-info h4 { 
-            color: #1e3c72; 
-            margin-bottom: 10px; 
-            display: flex; 
-            align-items: center; 
-            gap: 8px;
-        }
+        
+        /* Route Summary */
         .route-summary { 
             display: flex; 
             justify-content: space-between; 
-            background: white; 
+            background: #f8f9fa; 
             padding: 15px; 
             border-radius: 10px; 
             margin-bottom: 15px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .route-summary-item { text-align: center; }
         .route-value { 
@@ -458,10 +488,10 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* Voice Control - MOVED TO MAP PAGE */
+        /* Voice Control */
         .voice-control {
             position: absolute;
-            bottom: 80px;
+            bottom: 140px;
             right: 20px;
             z-index: 1000;
         }
@@ -523,8 +553,9 @@
                 margin-bottom: 0;
             }
             
-            .map-page header .swipe-indicator {
-                display: none;
+            .route-panel {
+                max-width: 400px;
+                right: auto;
             }
         }
         
@@ -569,10 +600,6 @@
             }
             .route-summary-item { flex: 1; }
             
-            .navigation-panel {
-                display: none;
-            }
-            
             /* Ensure content fits in mobile viewport */
             .menu-content {
                 padding: 0 15px;
@@ -584,9 +611,9 @@
                 padding: 15px;
             }
             
-            .map-page header .swipe-indicator {
-                font-size: 0.75rem;
-                padding: 4px 8px;
+            .route-panel {
+                left: 10px;
+                right: 10px;
             }
         }
     </style>
@@ -601,17 +628,36 @@
     <!-- Notification -->
     <div class="notification" id="notification"></div>
     
-    <!-- Mobile Navigation Icons - HIDDEN -->
-    <div class="mobile-nav-icons" id="mobileNavIcons" style="display: none;">
-        <button class="nav-icon-btn" id="menuIconBtn" title="Open Menu">
-            <i class="fas fa-bars"></i>
-        </button>
-        <button class="nav-icon-btn" id="mapIconBtn" title="Open Map" style="display: none;">
-            <i class="fas fa-map"></i>
-        </button>
+    <!-- Route Panel on Map (Collapsible) -->
+    <div class="route-panel" id="routePanel">
+        <div class="route-panel-header" id="routePanelHeader">
+            <h3><i class="fas fa-route"></i> Route to Destination</h3>
+            <span class="panel-toggle-icon"><i class="fas fa-chevron-up"></i></span>
+        </div>
+        <div class="route-panel-content" id="routePanelContent">
+            <div class="route-summary">
+                <div class="route-summary-item">
+                    <span class="route-value" id="routeDistance">--</span>
+                    <span class="route-label">Distance</span>
+                </div>
+                <div class="route-summary-item">
+                    <span class="route-value" id="routeTime">--</span>
+                    <span class="route-label">Time</span>
+                </div>
+                <div class="route-summary-item">
+                    <span class="route-value" id="routeTurns">--</span>
+                    <span class="route-label">Turns</span>
+                </div>
+            </div>
+            
+            <h4 style="margin-top: 15px; margin-bottom: 10px; color: #1e3c72;">
+                <i class="fas fa-directions"></i> Turn-by-Turn Directions
+            </h4>
+            <div class="route-instructions" id="routeInstructions"></div>
+        </div>
     </div>
     
-    <!-- Voice Control Button - MOVED TO MAP PAGE -->
+    <!-- Voice Control Button -->
     <div class="voice-control" id="voiceControl">
         <button class="voice-btn" id="toggleVoiceBtn" title="Toggle Voice Guidance">
             <i class="fas fa-volume-up"></i>
@@ -623,6 +669,11 @@
         <button class="location-btn" id="goToLocationBtn" title="Go to my location">
             <i class="fas fa-location-arrow"></i>
         </button>
+    </div>
+    
+    <!-- Swipe indicator -->
+    <div class="swipe-indicator" id="swipeIndicator">
+        <i class="fas fa-arrow-right"></i> Swipe right to Menu
     </div>
     
     <!-- Main split container -->
@@ -677,33 +728,9 @@
                             <i class="fas fa-times"></i> Clear
                         </button>
                     </div>
-                    
-                    <div class="route-info" id="routeInfo">
-                        <h4><i class="fas fa-info-circle"></i> Route to Destination</h4>
-                        
-                        <div class="route-summary">
-                            <div class="route-summary-item">
-                                <span class="route-value" id="routeDistance">--</span>
-                                <span class="route-label">Distance</span>
-                            </div>
-                            <div class="route-summary-item">
-                                <span class="route-value" id="routeTime">--</span>
-                                <span class="route-label">Time</span>
-                            </div>
-                            <div class="route-summary-item">
-                                <span class="route-value" id="routeTurns">--</span>
-                                <span class="route-label">Turns</span>
-                            </div>
-                        </div>
-                        
-                        <h4 style="margin-top: 20px;"><i class="fas fa-directions"></i> Turn-by-Turn Directions</h4>
-                        <div class="route-instructions" id="routeInstructions">
-                            <!-- Instructions will be added here -->
-                        </div>
-                    </div>
                 </div>
                 
-                <!-- REPORT TRAFFIC SECTION (Collapsible - Default Hidden) -->
+                <!-- REPORT TRAFFIC SECTION -->
                 <div class="section-header" id="reportHeader">
                     <h3><i class="fas fa-edit"></i> Report Traffic</h3>
                     <span class="toggle-icon collapsed"><i class="fas fa-chevron-down"></i></span>
@@ -767,13 +794,6 @@
         
         <!-- Map Page (Right) -->
         <div class="map-page">
-            <header>
-                <h1>🗺️ FilMap</h1>
-                <div class="swipe-indicator">
-                    <i class="fas fa-arrow-right"></i> Swipe right here to Menu
-                </div>
-            </header>
-            
             <div id="map"></div>
         </div>
     </div>
@@ -816,12 +836,45 @@
             showNotification("Firebase error: " + error.message, "error");
         }
 
-        // Initialize Map
-        const map = L.map('map').setView([14.5995, 120.9842], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap',
-            maxZoom: 19
-        }).addTo(map);
+        // Initialize Map with rotation capability
+        const map = L.map('map', {
+            center: [14.5995, 120.9842],
+            zoom: 12,
+            zoomControl: true,
+            bearing: 0,
+            pitch: 0,
+            renderer: L.canvas(),
+            inertia: true,
+            inertiaDeceleration: 3000,
+            inertiaMaxSpeed: 1500,
+            easeLinearity: 0.2
+        });
+
+        // Add multiple map layers for searchable maps
+        const mapLayers = {
+            "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 19
+            }),
+            "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri',
+                maxZoom: 19
+            }),
+            "Topographic": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenTopoMap',
+                maxZoom: 17
+            }),
+            "Transport Map": L.tileLayer('https://{s}.tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=your-api-key', {
+                attribution: '© Thunderforest',
+                maxZoom: 19
+            })
+        };
+
+        // Add default map layer
+        mapLayers["OpenStreetMap"].addTo(map);
+
+        // Add layer control for switching maps
+        L.control.layers(mapLayers, null, { position: 'topright' }).addTo(map);
 
         // ============================================
         // GLOBAL VARIABLES
@@ -837,23 +890,23 @@
         let isReportCollapsed = true;
         let activeRoute = null;
         let routeFound = false;
-        let voiceEnabled = true; // Auto-enable voice by default
+        let voiceEnabled = true;
         let speechSynthesis = window.speechSynthesis;
         let currentInstructionIndex = 0;
         let isNavigationMode = false;
         let navigationSteps = [];
-        
-        // NEW VARIABLES FOR VOICE NAVIGATION
         let routeCoordinates = [];
         let currentRoute = null;
         let nextCheckpointIndex = 0;
-        let checkpointThreshold = 100; // Speak 100 meters before turn
+        let checkpointThreshold = 100;
         let voiceCheckInterval = null;
         let isVoiceActive = false;
         let lastSpokenInstruction = null;
         let distanceToNextTurn = 0;
         let userOnRoute = true;
         let navigationInterval = null;
+        let currentBearing = 0;
+        let lastPosition = null;
         
         const typeConfig = {
             light: { color: '#4CAF50', label: 'Light Traffic', emoji: '✅' },
@@ -873,7 +926,6 @@
 
         // NCR Major Streets and Landmarks
         const ncrLocations = [
-            // Major Highways and Roads
             "EDSA", "C5 Road", "Commonwealth Avenue", "Quezon Avenue", "Roxas Boulevard",
             "Taft Avenue", "Ortigas Avenue", "Shaw Boulevard", "Kalayaan Avenue",
             "Buendia Avenue", "Gil Puyat Avenue", "Ayala Avenue", "Bonifacio Global City",
@@ -884,31 +936,55 @@
             "Cultural Center of the Philippines", "Rizal Park", "Luneta Park",
             "Intramuros", "Binondo", "Quiapo Church", "University of the Philippines",
             "Ateneo de Manila University", "De La Salle University", "UST",
-            "Manila City Hall", "Quezon City Hall", "Makati City Hall",
-            // Bridges
-            "Nagtahan Bridge", "Lambingan Bridge", "Makati-Mandaluyong Bridge",
-            "Guadalupe Bridge", "Estrella-Pantaleon Bridge",
-            // Shopping Centers
-            "SM Megamall", "SM City North EDSA", "Robinsons Place Manila",
-            "Glorietta", "Greenbelt", "Power Plant Mall", "Market! Market!",
-            "Festival Mall", "Starmall", "SM City Fairview",
-            // Hospitals
-            "St. Luke's Medical Center", "Makati Medical Center", "Philippine General Hospital",
-            "Medical City", "UST Hospital", "Asian Hospital",
-            // Universities
-            "University of the Philippines Diliman", "Ateneo de Manila University",
-            "De La Salle University", "University of Santo Tomas", "FEU", "UE",
-            "Polytechnic University of the Philippines", "Mapua University",
-            // Government Offices
-            "Senate of the Philippines", "House of Representatives", "Supreme Court",
-            "Bangko Sentral ng Pilipinas", "Department of Foreign Affairs",
-            // Parks and Recreation
-            "Rizal Park", "Quezon Memorial Circle", "Ninoy Aquino Parks and Wildlife",
-            "Manila Ocean Park", "Star City", "Enchanted Kingdom",
-            // Transport Hubs
-            "LRT Line 1", "LRT Line 2", "MRT Line 3", "PITX", "Cubao Bus Terminal",
-            "Buendia Bus Terminal", "Pasay Rotunda"
+            "Manila City Hall", "Quezon City Hall", "Makati City Hall"
         ];
+
+        // ============================================
+        // MAP ROTATION FUNCTIONS (Always face direction of travel)
+        // ============================================
+        function calculateBearing(fromLat, fromLng, toLat, toLng) {
+            const toRad = Math.PI / 180;
+            const fromLatRad = fromLat * toRad;
+            const fromLngRad = fromLng * toRad;
+            const toLatRad = toLat * toRad;
+            const toLngRad = toLng * toRad;
+            
+            const y = Math.sin(toLngRad - fromLngRad) * Math.cos(toLatRad);
+            const x = Math.cos(fromLatRad) * Math.sin(toLatRad) -
+                     Math.sin(fromLatRad) * Math.cos(toLatRad) * Math.cos(toLngRad - fromLngRad);
+            
+            let bearing = Math.atan2(y, x) * (180 / Math.PI);
+            bearing = (bearing + 360) % 360;
+            return bearing;
+        }
+
+        function rotateMapToBearing(bearing) {
+            if (Math.abs(currentBearing - bearing) > 5) { // Only rotate if change is significant
+                currentBearing = bearing;
+                
+                // Smooth rotation animation
+                const mapContainer = map.getContainer();
+                mapContainer.style.transition = 'transform 0.5s ease-out';
+                mapContainer.style.transform = `rotate(${bearing}deg)`;
+                
+                // Reset transition after animation
+                setTimeout(() => {
+                    mapContainer.style.transition = '';
+                }, 500);
+            }
+        }
+
+        function updateMapRotation() {
+            if (!userLocation || !lastPosition || !isNavigationMode) return;
+            
+            const bearing = calculateBearing(
+                lastPosition.lat, lastPosition.lng,
+                userLocation.lat, userLocation.lng
+            );
+            
+            rotateMapToBearing(bearing);
+            lastPosition = { ...userLocation };
+        }
 
         // ============================================
         // VOICE CONTROL BUTTON
@@ -950,13 +1026,12 @@
         });
 
         // ============================================
-        // PAGE NAVIGATION FUNCTIONS - UPDATED TO START ON MENU
+        // PAGE NAVIGATION FUNCTIONS
         // ============================================
         let touchStartX = 0;
         let touchEndX = 0;
-        let currentPage = 'menu'; // Changed from 'map' to 'menu'
+        let currentPage = 'menu';
         
-        // START ON MENU PAGE BY DEFAULT
         function showMapPage() {
             const container = document.getElementById('splitContainer');
             container.style.transform = 'translateX(-100vw)';
@@ -988,72 +1063,64 @@
             
             if (Math.abs(swipeDistance) > swipeThreshold) {
                 if (swipeDistance > 0 && currentPage === 'map') {
-                    // Swipe right on map page -> show menu
                     showMenuPage();
                 } else if (swipeDistance < 0 && currentPage === 'menu') {
-                    // Swipe left on menu page -> show map
                     showMapPage();
                 }
             }
         }
         
-        // On desktop, show both pages side by side
-        function checkScreenSize() {
-            if (window.innerWidth >= 768) {
-                const container = document.getElementById('splitContainer');
-                container.style.transform = 'translateX(0)';
+        // Route panel toggle
+        document.getElementById('routePanelHeader').addEventListener('click', function() {
+            const icon = this.querySelector('.panel-toggle-icon');
+            const content = document.getElementById('routePanelContent');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.classList.remove('collapsed');
             } else {
-                // On mobile, start on menu page (removed showMapPage call)
-                // Menu page is already shown by default
+                content.style.display = 'none';
+                icon.classList.add('collapsed');
             }
-        }
+        });
 
         // ============================================
-        // VOICE FUNCTIONS - UPDATED FOR AUTO NAVIGATION
+        // VOICE FUNCTIONS
         // ============================================
         function speak(text) {
             if (!voiceEnabled || !speechSynthesis) return;
             
-            // Cancel any ongoing speech
             speechSynthesis.cancel();
             
-            // Create utterance
             const utterance = new SpeechSynthesisUtterance(text);
-            
-            // Configure for clear voice
             utterance.rate = 1.0;
             utterance.pitch = 1.1;
             utterance.volume = 1;
             
-            // Try to get a good voice
             const voices = speechSynthesis.getVoices();
             const goodVoice = voices.find(voice => 
                 voice.lang.includes('en') && 
                 (voice.name.includes('Female') || 
                  voice.name.includes('Google') ||
-                 voice.name.includes('Samantha') ||
-                 voice.name.includes('Microsoft'))
+                 voice.name.includes('Samantha'))
             );
             
             if (goodVoice) {
                 utterance.voice = goodVoice;
             }
             
-            // Speak the text
             speechSynthesis.speak(utterance);
         }
 
         function speakNavigationInstruction(instruction, distance) {
             if (!voiceEnabled || !instruction) return;
             
-            // Clean up the instruction text for speech
             let cleanText = instruction.text
                 .replace(/<\/?[^>]+(>|$)/g, "")
                 .replace(/&nbsp;/g, " ")
                 .replace(/&amp;/g, "and")
                 .trim();
             
-            // Add distance information for turns
             if (cleanText.includes('Turn') || cleanText.includes('left') || cleanText.includes('right')) {
                 if (distance > 0) {
                     const distanceMeters = Math.round(distance);
@@ -1070,7 +1137,7 @@
         }
 
         // ============================================
-        // AUTO VOICE NAVIGATION FUNCTIONS
+        // AUTO VOICE NAVIGATION
         // ============================================
         function checkPositionForVoiceGuidance() {
             if (!isNavigationMode || !userLocation || !currentRoute || navigationSteps.length === 0) {
@@ -1084,7 +1151,6 @@
                 const nextStepIndex = currentInstructionIndex + 1;
                 const nextStep = navigationSteps[nextStepIndex];
                 
-                // Calculate remaining distance to next instruction
                 let remainingDistance = 0;
                 for (let i = currentInstructionIndex + 1; i < navigationSteps.length; i++) {
                     remainingDistance += navigationSteps[i].distance;
@@ -1107,7 +1173,7 @@
                         }
                     });
                     
-                    // If this is the arrival instruction
+                    // Arrival instruction
                     if (nextStep.text.includes('Arrive') || nextStep.text.includes('Destination')) {
                         setTimeout(() => {
                             speak("You have arrived at your destination");
@@ -1118,7 +1184,7 @@
                     }
                 }
                 
-                // Give distance updates for major turns
+                // Distance updates for major turns
                 if (nextStep.text.includes('Turn') || nextStep.text.includes('Exit')) {
                     if (remainingDistance < 500 && remainingDistance > 100) {
                         if (!lastSpokenInstruction || !lastSpokenInstruction.includes('500')) {
@@ -1149,6 +1215,9 @@
                     userOnRoute = true;
                 }
             }
+            
+            // Update map rotation based on movement
+            updateMapRotation();
         }
 
         function startVoiceNavigation() {
@@ -1158,11 +1227,9 @@
             currentInstructionIndex = 0;
             lastSpokenInstruction = null;
             
-            // Start checking position every 3 seconds
             if (voiceCheckInterval) clearInterval(voiceCheckInterval);
             voiceCheckInterval = setInterval(checkPositionForVoiceGuidance, 3000);
             
-            // Speak first instruction
             setTimeout(() => {
                 if (navigationSteps.length > 0) {
                     speak("Starting navigation. Please follow the route.");
@@ -1184,39 +1251,6 @@
             }
         }
 
-        function recalculateRoute() {
-            if (!userLocation) return;
-            
-            showNotification('Recalculating route...');
-            if (voiceEnabled) speak("Recalculating route");
-            
-            // Clear current route
-            if (routingControl) {
-                map.removeControl(routingControl);
-                routingControl = null;
-            }
-            
-            if (activeRoute) {
-                map.removeLayer(activeRoute);
-                activeRoute = null;
-            }
-            
-            // Use current location as new starting point
-            const fromLatLng = L.latLng(userLocation.lat, userLocation.lng);
-            const toInput = document.getElementById('toInput').value;
-            
-            if (!toInput) {
-                showNotification('Destination not found', 'error');
-                return;
-            }
-            
-            // Re-search route from current location
-            setTimeout(() => {
-                document.getElementById('fromInput').value = "My Current Location";
-                searchRoute();
-            }, 1000);
-        }
-
         // ============================================
         // TOGGLE SECTIONS
         // ============================================
@@ -1226,14 +1260,12 @@
             const icon = header.querySelector('.toggle-icon');
             
             if (content.classList.contains('collapsed')) {
-                // Expand
                 content.classList.remove('collapsed');
                 icon.classList.remove('collapsed');
                 if (sectionId === 'report') {
                     isReportCollapsed = false;
                 }
             } else {
-                // Collapse
                 content.classList.add('collapsed');
                 icon.classList.add('collapsed');
                 if (sectionId === 'report') {
@@ -1242,12 +1274,11 @@
             }
         }
 
-        // Initialize sections
         document.getElementById('directionsHeader').addEventListener('click', () => toggleSection('directions'));
         document.getElementById('reportHeader').addEventListener('click', () => toggleSection('report'));
 
         // ============================================
-        // UPDATED DIRECTION FUNCTIONS
+        // DIRECTION FUNCTIONS
         // ============================================
         function showGoButton() {
             const directionButtons = document.getElementById('directionButtons');
@@ -1277,7 +1308,6 @@
             
             document.getElementById('searchRouteBtn').addEventListener('click', function() {
                 searchRoute();
-                // Auto-click Go button after a short delay
                 setTimeout(() => {
                     if (routeFound) {
                         startNavigation();
@@ -1293,33 +1323,27 @@
                 routingControl = null;
             }
             
-            // Remove route highlight
             if (activeRoute) {
                 map.removeLayer(activeRoute);
                 activeRoute = null;
             }
             
-            document.getElementById('routeInfo').style.display = 'none';
+            document.getElementById('routePanel').classList.remove('active');
             document.getElementById('toInput').value = '';
-            document.getElementById('routeInstructions').innerHTML = '';
             document.getElementById('suggestions').style.display = 'none';
             routeFound = false;
             isNavigationMode = false;
             
-            // Stop voice navigation
             stopVoiceNavigation();
             voiceEnabled = true;
             
-            // Switch back to search button
             showSearchButton();
             
-            // Clear route data
             routeCoordinates = [];
             currentRoute = null;
             navigationSteps = [];
             currentInstructionIndex = 0;
             
-            // Switch to menu page instead of map page
             showMenuPage();
             
             if (voiceEnabled) speak("Route cleared");
@@ -1357,7 +1381,6 @@
             if (userLocation) {
                 fromLatLng = L.latLng(userLocation.lat, userLocation.lng);
             } else {
-                // Try to geocode the "From" location
                 const fromInput = document.getElementById('fromInput').value;
                 if (fromInput && fromInput !== "My Current Location") {
                     try {
@@ -1387,9 +1410,8 @@
                 }
             }
 
-            // Get "To" location via enhanced geocoding
+            // Get "To" location
             try {
-                // Try multiple search strategies
                 const searchQueries = [
                     toInput + ', Metro Manila, Philippines',
                     toInput + ', NCR, Philippines',
@@ -1406,7 +1428,6 @@
                     if (geocodeResponse.ok) {
                         const data = await geocodeResponse.json();
                         if (data.length > 0) {
-                            // Find the best match (prefer Metro Manila results)
                             const bestMatch = data.find(item => 
                                 item.display_name.includes('Metro Manila') || 
                                 item.display_name.includes('NCR') ||
@@ -1422,7 +1443,6 @@
                 if (geocodeData) {
                     toLatLng = L.latLng(parseFloat(geocodeData.lat), parseFloat(geocodeData.lon));
                     
-                    // Update input with the found location
                     const displayName = geocodeData.display_name;
                     const nameParts = displayName.split(',');
                     const shortName = nameParts.slice(0, Math.min(3, nameParts.length)).join(',');
@@ -1447,15 +1467,15 @@
                 map.removeLayer(activeRoute);
             }
 
-            // Create new route WITHOUT the Leaflet Routing Machine control panel
+            // Create new route
             routingControl = L.Routing.control({
                 waypoints: [fromLatLng, toLatLng],
                 routeWhileDragging: false,
                 showAlternatives: false,
-                addWaypoints: false, // Prevents adding waypoints via UI
-                draggableWaypoints: false, // Prevents dragging waypoints
-                fitSelectedRoutes: false, // Don't automatically fit the route
-                show: false, // Don't show the control panel at all
+                addWaypoints: false,
+                draggableWaypoints: false,
+                fitSelectedRoutes: false,
+                show: false,
                 lineOptions: {
                     styles: [{ color: '#1e3c72', weight: 5, opacity: 0.7 }]
                 },
@@ -1485,20 +1505,19 @@
                 const routes = e.routes;
                 const summary = routes[0].summary;
                 
-                // STORE ROUTE DATA FOR VOICE NAVIGATION
+                // STORE ROUTE DATA
                 currentRoute = routes[0];
                 routeCoordinates = routes[0].coordinates;
                 nextCheckpointIndex = 0;
                 distanceToNextTurn = 0;
                 userOnRoute = true;
                 
-                // Update route info
+                // Update route info in panel
                 document.getElementById('routeDistance').textContent = 
                     (summary.totalDistance / 1000).toFixed(1) + ' km';
                 document.getElementById('routeTime').textContent = 
                     Math.round(summary.totalTime / 60) + ' min';
                 
-                // Count turns
                 const instructions = routes[0].instructions;
                 const turnCount = instructions.filter(inst => 
                     inst.text.includes('Turn') || 
@@ -1509,11 +1528,10 @@
                 ).length;
                 document.getElementById('routeTurns').textContent = turnCount;
                 
-                // Add instructions to menu page
+                // Add instructions to panel
                 const instructionsDiv = document.getElementById('routeInstructions');
                 instructionsDiv.innerHTML = '';
                 
-                // Prepare navigation steps
                 navigationSteps = [];
                 
                 instructions.forEach((instruction, index) => {
@@ -1522,7 +1540,6 @@
                     stepDiv.dataset.index = index;
                     if (index === 0) stepDiv.classList.add('active');
                     
-                    // Get appropriate icon
                     let icon = 'fas fa-arrow-right';
                     if (instruction.text.includes('left')) icon = 'fas fa-arrow-left';
                     else if (instruction.text.includes('right')) icon = 'fas fa-arrow-right';
@@ -1542,12 +1559,10 @@
                         </div>
                     `;
                     
-                    // Add click event to speak the instruction
                     stepDiv.addEventListener('click', () => {
                         speakNavigationInstruction(instruction, instruction.distance);
                         currentInstructionIndex = index;
                         
-                        // Highlight clicked step
                         document.querySelectorAll('.instruction-step').forEach(step => {
                             step.classList.remove('active');
                         });
@@ -1556,7 +1571,6 @@
                     
                     instructionsDiv.appendChild(stepDiv);
                     
-                    // Add to navigation steps array
                     navigationSteps.push({
                         text: instruction.text,
                         distance: instruction.distance,
@@ -1573,20 +1587,20 @@
                     className: 'active-route'
                 }).addTo(map);
                 
-                document.getElementById('routeInfo').style.display = 'block';
+                // Show route panel
+                document.getElementById('routePanel').classList.add('active');
                 routeFound = true;
                 
-                // Show Go button instead of Search
+                // Show Go button
                 showGoButton();
                 
-                // Switch to map page to see the route
+                // Switch to map page
                 showMapPage();
                 
                 showNotification('Route found! Navigation starting automatically...');
                 if (voiceEnabled) speak("Route found. Starting navigation.");
             });
 
-            // Fit map to route bounds
             map.fitBounds([fromLatLng, toLatLng], { padding: [50, 50] });
         }
 
@@ -1598,34 +1612,28 @@
             }
             
             isNavigationMode = true;
+            lastPosition = userLocation ? { ...userLocation } : null;
             
-            // Start voice navigation automatically
             startVoiceNavigation();
             
-            // Zoom to appropriate level for navigation
             map.setZoom(15);
             
-            // Start auto-tracking if not already
             if (!isTracking && userLocation) {
                 startAutoTracking();
             }
             
-            // Switch to map page for navigation
             showMapPage();
             
             showNotification('Navigation started! Voice guidance will guide you.');
         }
 
         // ============================================
-        // UPDATED START HERE BUTTON FUNCTION
+        // START HERE BUTTON FUNCTION
         // ============================================
         document.getElementById('startHereBtn').addEventListener('click', function() {
             getUserLocation().then(() => {
-                // Just get location, don't switch to map
                 showNotification('Location acquired! You can now search for directions.');
                 if (voiceEnabled) speak("Location ready. You can now search for directions.");
-                
-                // Auto-fill the "From" field but stay on menu page
                 document.getElementById('fromInput').value = "My Current Location";
             }).catch(error => {
                 console.error('Location error:', error);
@@ -1635,7 +1643,6 @@
 
         async function searchSuggestions(query) {
             if (query.length < 2) {
-                // Show NCR hotspots for short queries
                 if (query.length === 1) {
                     showNCRHotspots();
                 } else {
@@ -1645,7 +1652,6 @@
             }
 
             try {
-                // Combine NCR locations with API search
                 const localResults = [...ncrCities, ...ncrLocations]
                     .filter(location => 
                         location.toLowerCase().includes(query.toLowerCase())
@@ -1656,7 +1662,6 @@
                         type: 'local'
                     }));
                 
-                // API search for more specific results
                 const apiResponse = await fetch(
                     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ' Metro Manila')}&limit=5`
                 );
@@ -1666,7 +1671,6 @@
                     apiResults = await apiResponse.json();
                 }
                 
-                // Combine and deduplicate results
                 const allResults = [...localResults, ...apiResults];
                 const uniqueResults = [];
                 const seen = new Set();
@@ -1683,7 +1687,6 @@
                 
             } catch (error) {
                 console.error('Suggestion error:', error);
-                // Fallback to local NCR locations
                 showNCRHotspots();
             }
         }
@@ -1697,7 +1700,6 @@
                     const suggestion = document.createElement('div');
                     suggestion.className = 'suggestion-item';
                     
-                    // Determine icon based on type
                     let icon = 'fas fa-map-marker-alt';
                     let type = '';
                     
@@ -1807,17 +1809,11 @@
                         updateLocationStatus(`Location found! Accuracy: ${Math.round(userLocation.accuracy)}m`, 'success');
                         updateUserLocationMarker();
                         
-                        // Don't switch to map automatically
-                        // map.setView([userLocation.lat, userLocation.lng], 15);
-                        
                         autoFillLocationField();
                         
-                        // Start auto-tracking immediately
                         startAutoTracking();
                         
                         document.getElementById('fromInput').value = "My Current Location";
-                        
-                        // Stay on menu page
                         
                         if (voiceEnabled) speak("Location found. Ready for navigation.");
                         
@@ -1878,7 +1874,6 @@
             selectedLocation = { lat: userLocation.lat, lng: userLocation.lng };
             validateForm();
             
-            // Try to get address
             try {
                 const response = await fetch(
                     `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLocation.lat}&lon=${userLocation.lng}`
@@ -1907,17 +1902,15 @@
             document.getElementById('fromInput').value = '';
             validateForm();
             
-            // Stop tracking
             stopAutoTracking();
         }
 
         // ============================================
-        // AUTO TRACKING FUNCTIONS - UPDATED FOR VOICE
+        // AUTO TRACKING FUNCTIONS
         // ============================================
         function startAutoTracking() {
             if (!navigator.geolocation || !userLocation) return;
             
-            // Clear any existing watch
             if (watchId) navigator.geolocation.clearWatch(watchId);
             
             watchId = navigator.geolocation.watchPosition(
@@ -1929,11 +1922,9 @@
                     };
                     updateUserLocationMarker();
                     
-                    // If we're in navigation mode, keep map centered on user
                     if (isNavigationMode) {
                         map.setView([userLocation.lat, userLocation.lng], 15);
                         
-                        // Auto-check for voice guidance
                         if (isVoiceActive) {
                             checkPositionForVoiceGuidance();
                         }
@@ -1981,10 +1972,8 @@
         // ============================================
         // EVENT HANDLERS
         // ============================================
-        // Direction handlers
         document.getElementById('swapBtn').addEventListener('click', swapLocations);
 
-        // Search suggestions with debounce
         document.getElementById('toInput').addEventListener('input', function(e) {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
@@ -2030,22 +2019,17 @@
                 const newReportRef = reportsRef.push();
                 await newReportRef.set(report);
                 
-                // Clear form
                 document.getElementById('trafficType').value = '';
                 document.getElementById('locationInput').value = '';
                 document.getElementById('description').value = '';
                 selectedLocation = null;
                 validateForm();
                 
-                // Collapse the report section after submission
                 toggleSection('report');
                 
-                // Start auto-tracking if not already
                 if (!isTracking && userLocation) {
                     startAutoTracking();
                 }
-                
-                // Stay on menu page instead of switching to map
                 
                 showNotification('✅ Report submitted successfully!');
                 
@@ -2138,15 +2122,12 @@
             card.addEventListener('click', () => {
                 map.setView([report.lat, report.lng], 16);
                 if (markers[report.id]) markers[report.id].openPopup();
-                
-                // Switch to map page when clicking on report
                 showMapPage();
             });
             
             container.insertBefore(card, container.firstChild);
         }
 
-        // Listen for new reports
         reportsRef.on('child_added', function(snapshot) {
             const report = snapshot.val();
             report.id = snapshot.key;
@@ -2171,19 +2152,15 @@
         // ============================================
         // INITIAL LOAD
         // ============================================
-        // Initialize speech synthesis voices
         if (speechSynthesis) {
-            // Some browsers need this to load voices
             speechSynthesis.onvoiceschanged = function() {
                 console.log('Voices loaded:', speechSynthesis.getVoices().length);
             };
         }
 
-        // Set up responsive layout
         window.addEventListener('resize', checkScreenSize);
         checkScreenSize();
 
-        // Hide loading
         setTimeout(() => {
             document.getElementById('loadingOverlay').style.display = 'none';
             validateForm();
@@ -2191,7 +2168,6 @@
             if (voiceEnabled) speak("FilMap navigation ready");
         }, 1000);
 
-        // Load existing reports
         reportsRef.limitToLast(20).once('value').then((snapshot) => {
             if (snapshot.exists()) {
                 document.getElementById('noReports').style.display = 'none';
@@ -2203,7 +2179,6 @@
             }
         });
 
-        // Initialize the search button with auto-go functionality
         showSearchButton();
 
         console.log("✅ FilMap with Auto Voice Navigation loaded!");
